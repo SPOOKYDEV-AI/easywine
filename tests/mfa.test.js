@@ -63,19 +63,20 @@ test('full MFA lifecycle: enrollment, no password bypass, OTP replay, recovery a
  assert.equal(required.cookie,undefined);
  assert.equal((await call('GET','/api/me')).status,401);
  assert.equal((await call('POST','/api/login/mfa',{challenge:required.data.challenge,code:'invalid'})).status,401);
- const correct=await call('POST','/api/login/mfa',{challenge:required.data.challenge,code:otp});
+ assert.equal((await call('POST','/api/login/mfa',{challenge:required.data.challenge,code:otp})).status,401);
+ const correct=await call('POST','/api/login/mfa',{challenge:required.data.challenge,code:enabled.data.codes[0]});
  assert.equal(correct.status,200);
  assert.ok(correct.cookie);
  assert.equal((await call('GET','/api/me/mfa',null,correct.cookie)).data.enabled,true);
  const replayChallenge=await login();
  assert.equal((await call('POST','/api/login/mfa',{challenge:replayChallenge.data.challenge,code:otp})).status,401);
  const recovery=await call('POST','/api/login/mfa',{
-  challenge:replayChallenge.data.challenge,code:enabled.data.codes[0]});
+  challenge:replayChallenge.data.challenge,code:enabled.data.codes[1]});
  assert.equal(recovery.status,200);
  assert.ok(recovery.cookie);
  const again=await login();
- assert.equal((await call('POST','/api/login/mfa',{challenge:again.data.challenge,code:enabled.data.codes[0]})).status,401);
- assert.equal((await call('GET','/api/me/mfa',null,recovery.cookie)).data.recoveryCodesRemaining,7);
+ assert.equal((await call('POST','/api/login/mfa',{challenge:again.data.challenge,code:enabled.data.codes[2]})).status,401);
+ assert.equal((await call('GET','/api/me/mfa',null,recovery.cookie)).data.recoveryCodesRemaining,6);
  // Password rotation invalidates an outstanding MFA challenge too.
  const outstanding=await login();
  assert.equal((await call('POST','/api/me/password',{currentPassword:password,
@@ -85,13 +86,13 @@ test('full MFA lifecycle: enrollment, no password bypass, OTP replay, recovery a
  const afterPassword=await login('mfa-a','New-MFA-Password-2026!');
  assert.equal(afterPassword.data.mfaRequired,true);
  const afterRecovery=await call('POST','/api/login/mfa',
-  {challenge:afterPassword.data.challenge,code:enabled.data.codes[1]});
+  {challenge:afterPassword.data.challenge,code:enabled.data.codes[2]});
  assert.equal(afterRecovery.status,200);
  // Disabling needs BOTH the new password and a live one-time second factor.
- assert.equal((await call('POST','/api/me/mfa/disable',{password:'bad',code:enabled.data.codes[2]},
+ assert.equal((await call('POST','/api/me/mfa/disable',{password:'bad',code:enabled.data.codes[3]},
   afterRecovery.cookie)).status,403);
  const disabled=await call('POST','/api/me/mfa/disable',{password:'New-MFA-Password-2026!',
-  code:enabled.data.codes[2]},afterRecovery.cookie);
+  code:enabled.data.codes[3]},afterRecovery.cookie);
  assert.equal(disabled.status,200);
  assert.equal(disabled.data.disabled,true);
  assert.equal((await call('GET','/api/me',null,afterRecovery.cookie)).status,401);
