@@ -7,6 +7,7 @@ import {mkdtempSync,existsSync,rmSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {once} from 'node:events';
+import {fileURLToPath} from 'node:url';
 import {openDatabase} from '../src/server/db.js';
 
 async function freePort(){
@@ -25,7 +26,7 @@ test('standalone Node server boots, serves the UI and survives process restart',
  const url='http://127.0.0.1:'+port;
  async function boot(){
   const child=spawn(process.execPath,['src/server/index.js'],{
-   cwd:new URL('..',import.meta.url).pathname,
+   cwd:fileURLToPath(new URL('../',import.meta.url)),
    env:{...process.env,PORT:String(port),HOST:'127.0.0.1',EASYWINE_DB:path},
    stdio:['ignore','pipe','pipe']
   });
