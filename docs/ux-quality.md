@@ -19,6 +19,15 @@ Servir une proposition de vin **effectivement présente en cave**, avec une expl
 
 Un choix déclaré n'est **jamais** une vente encaissée. Les décisions de stock et les statistiques doivent conserver cette distinction.
 
+## Architecture de navigation adaptative
+
+- **Desktop / tablette large** : navigation latérale persistante, accessible au clavier et sans disparition lors des changements de rubrique.
+- **Téléphone (≤680 px)** : navigation **fixe en bas d'écran** vers Conseiller, Cave, Carte et Compte ; les rubriques secondaires sont sous « Plus » avec fermeture Échap, retour du focus sur la commande et état `aria-expanded`.
+- **Personnel de salle** : seulement Conseiller et Compte ; aucun onglet de gestion affiché, indépendamment des permissions API.
+- Une navigation changeant de rubrique repositionne le document en haut, sans perdre le contexte des préférences de service ni déplacer arbitrairement une vue rafraîchie.
+- Les commandes tactiles doivent rester utilisables avec une seule main ; au plus cinq destinations principales. Fondements : [Android Material navigation](https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns) et [Apple HIG tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars). Ce choix est une hypothèse ergonomique à confronter aux vrais utilisateurs, pas une validation de leur comportement.
+- Les captures `mobile-navigation.png` et le scénario `tests/browser-mobile-nav.mjs` vérifient la taille physique des cibles, la visibilité du menu, les permissions et le repositionnement après scroll.
+
 ## Comportements attendus dans chaque état
 
 - **Premier chargement** : logo lisible et statut annoncé aux lecteurs d'écran, plutôt qu'une interface blanche avant la résolution de session.
@@ -42,7 +51,8 @@ Un choix déclaré n'est **jamais** une vente encaissée. Les décisions de stoc
 4. `tests/browser-ux.mjs` : chargement initial retardé, bouton de connexion pendant latence, ordre des réponses lors de navigation rapide, défaillance réseau + reprise, délai des recommandations, réduction des animations, overflow mobile. Il produit `test-artifacts/ux-lab-metrics.json` et inscrit `BROWSER_UX_OK` dans les logs CI.
 5. `tests/browser-ux.mjs` couvre également la fermeture `Escape` pendant une sauvegarde en cours, le focus clavier initial des formulaires et l'absence de double requête de modification.
 6. `tests/browser-scale.mjs` : génération synthétique de 2 400 vins, mesure de la connexion avec chargement de cave, rendu initial limité à 80 lignes, expansion à 160, recherche sur les 2 400, contrôle DOM/overflow mobile. Produit `ux-scale.json`, sans donnée restaurant réelle.
-7. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
+7. `tests/browser-mobile-nav.mjs` : test réel du menu mobile, des rôles, du panneau Plus, du clavier Échap, du retour du focus et des cibles tactiles.
+8. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
 
 ### Indicateurs
 

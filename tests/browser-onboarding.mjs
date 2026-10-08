@@ -43,7 +43,7 @@ try{
  await page.locator('#editor input[name=name]').fill('Velouté de saison');
  await page.locator('#editor button[type=submit]').click();
  await page.getByText('Velouté de saison').waitFor();
- await page.locator('#menu [data-view=service]').click();
+ await page.locator('#mobile-nav [data-mobile-view=service]').click();
  await page.getByText('Votre cave ne contient actuellement').waitFor();
  await page.getByRole('button',{name:/Renseigner ma cave/}).click();
  await page.getByRole('button',{name:/Ajouter un vin/}).click();
@@ -54,7 +54,7 @@ try{
  await page.locator('#editor input[name=stock]').fill('8');
  await page.locator('#editor button[type=submit]').click();
  await page.getByText('Cuvée découverte').waitFor();
- await page.locator('#menu [data-view=service]').click();
+ await page.locator('#mobile-nav [data-mobile-view=service]').click();
  assert.equal(await page.getByText('Votre cave ne contient actuellement').count(),0);
  await page.getByRole('button',{name:/Trouver les meilleurs accords/}).click();
  await page.locator('.result-card:not(.classic)').waitFor();
