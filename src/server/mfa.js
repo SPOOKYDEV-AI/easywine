@@ -84,9 +84,9 @@ export function confirmEnrollment(db,user,code){
   const codes=generateRecoveryCodes();
   transaction(db,()=>{
     const updated=db.prepare(
-      'UPDATE mfa_credentials SET enabled=1,pending_expires_at=NULL,last_step=-1,'+
+      'UPDATE mfa_credentials SET enabled=1,pending_expires_at=NULL,last_step=?,'+
       'failed_attempts=0,locked_until=NULL WHERE user_id=? AND enabled=0 AND pending_expires_at>?'
-    ).run(user.id,now());
+    ).run(valid.step,user.id,now());
     if(updated.changes!==1)fail('Configuration MFA expirée ou modifiée.',409);
     db.prepare('DELETE FROM mfa_recovery_codes WHERE user_id=?').run(user.id);
     const insert=db.prepare('INSERT INTO mfa_recovery_codes(user_id,code_hash) VALUES(?,?)');
