@@ -1,5 +1,5 @@
 
-import {byId,request,notice,handle,loadingState,errorState,withBusy,rotateRequestScope} from './ui.js';
+import {byId,request,notice,handle,loadingState,loadingStage,watchLongLoading,errorState,withBusy,rotateRequestScope} from './ui.js';
 import {viewFromHash,writeViewLocation} from './navigation.js';
 import './network-status.js';
 // Route-level code splitting: the login screen only downloads app.js and ui.js.
@@ -81,11 +81,19 @@ function showShell(){
  }
  byId('today').textContent=new Intl.DateTimeFormat('fr-FR',{dateStyle:'long'}).format(new Date());
 }
-async function load(){
+async function load(onProgress){
  const generation=sessionEpoch;
  const restaurant=currentUser?.restaurantId;
+ const completed={wines:false,dishes:false};
+ const mark=key=>{
+  completed[key]=true;
+  // These are actual completed HTTP responses, not estimated request progress.
+  if(generation===sessionEpoch&&restaurant===currentUser?.restaurantId)
+   onProgress?.({...completed});
+ };
  const [wines,dishes]=await Promise.all([
-  request('GET','/api/wines'),request('GET','/api/dishes')
+  request('GET','/api/wines').then(data=>{mark('wines');return data;}),
+  request('GET','/api/dishes').then(data=>{mark('dishes');return data;})
  ]);
  if(generation!==sessionEpoch||currentUser?.restaurantId!==restaurant||!currentUser)return false;
  store={wines:wines.wines,dishes:dishes.dishes};
@@ -129,6 +137,7 @@ async function view(name,{fromHistory=false,replaceHistory=false}={}){
  const target=workspace;
  target.setAttribute('aria-busy','true');
  target.replaceChildren(loadingState(messages[name]||'Chargement…'));
+ const stopLongLoading=watchLongLoading(target);
  try{
   // A staff member's menu and an owner's inventory must not rely forever on
   // an old in-memory snapshot. Avoid hidden/background polling or write retries.
@@ -156,6 +165,7 @@ async function view(name,{fromHistory=false,replaceHistory=false}={}){
   if(epoch!==viewEpoch||generation!==sessionEpoch)return;
   target.replaceChildren(errorState(error?.message||'Une erreur est survenue.',()=>view(name)));
  }finally{
+  stopLongLoading();
   if(epoch===viewEpoch&&generation===sessionEpoch)target.setAttribute('aria-busy','false');
  }
 }
@@ -166,18 +176,32 @@ async function enter(user){
  currentUser=user;
  const stamp=++viewEpoch;
  const generation=sessionEpoch;
- showShell();
- workspace.setAttribute('aria-busy','true');
- workspace.replaceChildren(loadingState('Chargement de votre cave et de votre carte…'));
+ const bootNode=byId('boot');
+ // Keep one coherent startup screen until the real catalogue has loaded.
+ // The workspace is never shown with an empty interim snapshot.
+ bootNode.hidden=false;
+ byId('login').hidden=true;
+ byId('shell').hidden=true;
+ if(!bootNode.querySelector('.boot-content'))
+  bootNode.replaceChildren(loadingState('Chargement de votre cave et de votre carte…'));
+ loadingStage(bootNode,'Chargement de votre cave et de votre carte…');
+ const stopLongLoading=watchLongLoading(bootNode);
  try{
-  const loaded=await load();
+  const loaded=await load(({wines,dishes})=>{
+   if(stamp!==viewEpoch||generation!==sessionEpoch)return;
+   if(wines&&!dishes)loadingStage(bootNode,'Cave chargée · Chargement de la carte…');
+   else if(dishes&&!wines)loadingStage(bootNode,'Carte chargée · Chargement de la cave…');
+  });
   if(!loaded||stamp!==viewEpoch||generation!==sessionEpoch)return;
+  showShell();
   await view(viewFromHash(window.location.hash)||'service',{replaceHistory:true});
   performance.mark('easywine:app-ready');
  }catch(error){
   if(stamp!==viewEpoch||generation!==sessionEpoch)return;
-  workspace.setAttribute('aria-busy','false');
-  workspace.replaceChildren(errorState(error?.message||'Chargement impossible.',()=>enter(user)));
+  bootNode.replaceChildren(errorState(error?.message||'Chargement impossible.',()=>enter(user)));
+  bootNode.hidden=false;
+ }finally{
+  stopLongLoading();
  }
 }
 byId('login-form').addEventListener('submit',handle(async event=>{
@@ -253,6 +277,8 @@ async function boot(){
  byId('boot').hidden=false;
  byId('login').hidden=true;
  byId('shell').hidden=true;
+ loadingStage(bootNode,'Vérification de votre session…');
+ const stopLongLoading=watchLongLoading(bootNode);
  try{
   const result=await request('GET','/api/session');
   if(!result.user){showLogin();performance.mark('easywine:login-ready');return;}
@@ -261,6 +287,8 @@ async function boot(){
   const message=error?.message||'Impossible de joindre EasyWine.';
   byId('boot').replaceChildren(errorState(message,boot));
   byId('boot').hidden=false;
+ }finally{
+  stopLongLoading();
  }
 }
 boot();

@@ -206,16 +206,31 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .wine-glass--inline{width:62px;height:85px}
 .wine-glass--mini{width:18px;height:24px}
 .wine-glass__liquid{clip-path:inset(100% 0 0 0);animation:wine-pour 1.28s cubic-bezier(.2,.65,.23,1) both}
-.wine-glass__surface{animation:wine-surface 1.3s ease-out both}
+.wine-glass__liquid-glint{opacity:0;animation:wine-liquid-light .55s .85s ease-out both}
+.wine-glass__surface{animation:wine-surface 1.28s ease-out both,wine-tide 2.4s 1.28s ease-in-out infinite}
 .wine-glass__outline{stroke:#927871}
-.wine-glass__highlight{opacity:.58}
-@keyframes wine-pour{0%{clip-path:inset(100% 0 0 0)}100%{clip-path:inset(0 0 0 0)}}
+.wine-glass__rim{opacity:.85}
+.wine-glass__highlight{opacity:.7}
+.wine-glass__stem-glint{opacity:.7}
+@keyframes wine-pour{from{clip-path:inset(100% 0 0 0)}to{clip-path:inset(0 0 0 0)}}
 @keyframes wine-surface{0%,58%{opacity:0}100%{opacity:1}}
+@keyframes wine-liquid-light{from{opacity:0}to{opacity:.55}}
+/* Once poured, subtle surface motion continues only while the busy SVG exists. */
+@keyframes wine-tide{0%,100%{transform:translateY(0)}50%{transform:translateY(1.2px)}}
 .view-loading{gap:.5rem;min-height:205px}
 .view-loading p{margin:.3rem 0 0;color:#605359;max-width:27ch;font-size:.85rem}
+.loading-detail{font-size:.76rem!important;color:#837779!important;line-height:1.5;max-width:34ch;margin:.45rem auto 0!important}
 .button.is-busy::before{content:none}
 .button.is-busy{display:inline-flex;align-items:center;justify-content:center;gap:.45rem}
+.button.is-busy:disabled{opacity:1;cursor:progress}
+.button.is-busy .wine-glass{animation:wine-breathe 2.2s ease-in-out infinite}
+@keyframes wine-breathe{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(-1.25px);opacity:.78}}
 .button.is-busy .wine-glass__liquid{animation-duration:.7s}
+/* Wine on burgundy needs an ivory glass and a blush fill, not burgundy-on-burgundy. */
+.button.primary.is-busy .wine-glass__liquid{fill:#e9adae}
+.button.primary.is-busy .wine-glass__surface{stroke:#fff4e9}
+.button.primary.is-busy .wine-glass__outline,.button.primary.is-busy .wine-glass__rim{stroke:#fff9f4}
+.button.primary.is-busy .wine-glass__liquid-glint,.button.primary.is-busy .wine-glass__stem-glint{stroke:#fce7df}
 .result-card{animation:lux-result-in .25s cubic-bezier(.22,.65,.3,1) both}
 @keyframes lux-result-in{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 #notification{
@@ -245,8 +260,10 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  .boot-glass{margin:.9rem 0 .5rem}
 }
 @media(prefers-reduced-motion:reduce){
- .wine-glass__liquid,.wine-glass__surface,.result-card,#notification{animation:none!important}
+ .wine-glass__liquid,.wine-glass__liquid-glint,.wine-glass__surface,.result-card,#notification{animation:none!important}
  .wine-glass__liquid{clip-path:none}
+ .wine-glass__liquid-glint{opacity:.55}
+ .button.is-busy .wine-glass{animation:none!important}
 }
 
 /* Author display:flex/grid must never override semantic hidden states. */

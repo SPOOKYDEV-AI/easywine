@@ -126,7 +126,29 @@ export function handle(fn){
 export function loadingState(message='Chargement de votre espace…'){
  return element('div',{class:'panel view-loading',role:'status','aria-live':'polite','aria-label':message},
   wineGlass('inline'),
-  element('p',{text:message}));
+  element('p',{class:'loading-message',text:message}),
+  element('p',{class:'loading-detail',hidden:'',text:'Le serveur met plus de temps que prévu à répondre.'}));
+}
+// Only actual resolved requests advance the message. No guessed percentage.
+export function loadingStage(host,message){
+ const indicator=host.querySelector('.view-loading,.boot-content');
+ if(!indicator)return;
+ const copy=indicator.querySelector('.loading-message,#boot-message');
+ if(!copy)return;
+ copy.textContent=message;
+ indicator.setAttribute('aria-label',message);
+}
+export function watchLongLoading(host,delayMs=2800){
+ const indicator=host.querySelector('.view-loading,.boot-content');
+ if(!indicator)return ()=>{};
+ const detail=indicator.querySelector('.loading-detail');
+ if(detail)detail.hidden=true; // No stale slow-warning on the next login/retry.
+ const timer=setTimeout(()=>{
+  if(!indicator.isConnected)return;
+  const detail=indicator.querySelector('.loading-detail');
+  if(detail)detail.hidden=false;
+ },delayMs);
+ return ()=>clearTimeout(timer);
 }
 export function errorState(message,retry){
  return element('section',{class:'view-error',role:'alert'},
