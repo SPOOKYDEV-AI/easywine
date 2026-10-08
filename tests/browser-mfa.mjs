@@ -38,6 +38,11 @@ try{
  catch(error){
   console.log('MFA_ACCOUNT_DIAGNOSTIC:',(await page.locator('#workspace').innerText()).slice(0,1600));
   console.log('MFA_NETWORK_DIAGNOSTIC:',errors.slice(-10));
+  console.log('MFA_TOAST_DIAGNOSTIC:',await page.locator('#notification').innerText());
+  console.log('MFA_FORM_DIAGNOSTIC:',await page.locator('.account-grid section').last().locator('form').evaluate(form=>({
+   valid:form.checkValidity(),html:form.outerHTML,
+   values:[...form.querySelectorAll('input')].map(x=>({name:x.name,type:x.type,length:x.value.length,valid:x.checkValidity()}))
+  })));
   throw error;
  }
  const encrypted=db.prepare('SELECT encrypted_secret FROM mfa_credentials WHERE user_id=?')
