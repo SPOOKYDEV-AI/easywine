@@ -70,10 +70,12 @@ byId('login-form').addEventListener('submit',handle(async event=>{
 for(const button of document.querySelectorAll('#menu [data-view]')){
  button.addEventListener('click',handle(()=>view(button.dataset.view)));
 }
-byId('logout').addEventListener('click',handle(async()=>{
+const logout=handle(async()=>{
  await request('POST','/api/logout',{});
  showLogin();
-}));
+});
+byId('logout').addEventListener('click',logout);
+byId('logout-mobile').addEventListener('click',logout);
 window.addEventListener('easywine:unauthorized',showLogin);
 (async()=>{
  try{
