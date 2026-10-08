@@ -43,7 +43,12 @@ export function notice(message,{error=false}={}){
  n.setAttribute('role',error?'alert':'status');
  clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{n.hidden=true;},5200);
 }
+let requestScope=0;
+export function rotateRequestScope(){
+ requestScope++;
+}
 export async function request(method,path,data){
+ const scope=requestScope;
  const init={method,credentials:'same-origin',headers:{}};
  if(method!=='GET'){
   init.headers['Content-Type']='application/json';
@@ -55,7 +60,7 @@ export async function request(method,path,data){
   init.signal=AbortSignal.timeout(15000);
   response=await fetch(path,init);
  }catch(error){
-  window.dispatchEvent(new Event('easywine:network-failed'));
+  if(scope===requestScope)window.dispatchEvent(new Event('easywine:network-failed'));
   const caution=method==='GET'
    ?'Vous pouvez réessayer.'
    :'Une action a peut-être été enregistrée : vérifiez son résultat avant de recommencer pour éviter un doublon.';
@@ -63,11 +68,11 @@ export async function request(method,path,data){
    throw new Error('Le serveur tarde à répondre. '+caution);
   throw new Error('Connexion au serveur indisponible. '+caution);
  }
- window.dispatchEvent(new Event('easywine:network-ok'));
+ if(scope===requestScope)window.dispatchEvent(new Event('easywine:network-ok'));
  let result;
  try{result=await response.json();}catch{throw new Error('Réponse serveur invalide.');}
  if(!response.ok){
-  if(response.status===401&&
+  if(scope===requestScope&&response.status===401&&
     !['/api/login','/api/login/mfa','/api/me/mfa/confirm','/api/me/mfa/disable'].includes(path))
    window.dispatchEvent(new Event('easywine:unauthorized'));
   throw new Error(result.error||'Erreur serveur '+response.status);
