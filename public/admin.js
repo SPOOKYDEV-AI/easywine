@@ -288,30 +288,6 @@ export async function renderUsers(container,{canManage=false,refresh,currentId}=
    e('h3',{text:member.name}),e('p',{text:member.email})),actions));
  }
 }
-export function renderAccount(container,user,onPasswordChanged){
- container.replaceChildren(heading('Mon compte','Sécurisez votre accès à '+user.restaurantName+'.'));
- const panel=e('section',{class:'panel'});
- const form=e('form',{class:'form-card'});
- form.append(e('h2',{text:'Changer mon mot de passe'}),
-   e('p',{class:'muted',text:'La modification révoquera toutes vos sessions, y compris celle-ci.'}));
- const current=e('input',{type:'password',name:'current',autocomplete:'current-password'});
- const next=e('input',{type:'password',name:'next',autocomplete:'new-password'});
- const confirm=e('input',{type:'password',name:'confirm',autocomplete:'new-password'});
- current.required=next.required=confirm.required=true;
- next.minLength=confirm.minLength=12;
- form.append(e('label',{},'Mot de passe actuel',current),
-  e('label',{},'Nouveau mot de passe (12 caractères minimum)',next),
-  e('label',{},'Confirmer le nouveau mot de passe',confirm),
-  e('button',{type:'submit',class:'button primary',text:'Enregistrer et me déconnecter'}));
- form.addEventListener('submit',handle(async event=>{
-  event.preventDefault();
-  if(next.value!==confirm.value)throw Error('Les deux mots de passe ne correspondent pas.');
-  await request('POST','/api/me/password',{currentPassword:current.value,newPassword:next.value});
-  onPasswordChanged();
-  notice('Mot de passe modifié. Connectez-vous à nouveau.');
- }));
- panel.append(form);container.append(panel);
-}
 export function addUserButton(container,refresh){
  const header=container.querySelector('.page-header');
  if(!header)return;

@@ -27,7 +27,7 @@ test('encrypted backup preserves committed WAL data and restores into a NEW data
   assert.equal(readFileSync(snapshot.path).includes(Buffer.from('Maison chiffrée')),false);
   assert.equal(readdirSync(join(dir,'private')).length,1);
   const recovered=join(dir,'restored.sqlite');
-  assert.equal((await restoreEncryptedBackup(snapshot.path,recovered,key)).version,3);
+  assert.equal((await restoreEncryptedBackup(snapshot.path,recovered,key)).version,4);
   const restored=openDatabase(recovered);
   assert.equal(restored.prepare('SELECT name FROM restaurants WHERE id=?').get(house.restaurantId).name,'Maison chiffrée');
   restored.close();

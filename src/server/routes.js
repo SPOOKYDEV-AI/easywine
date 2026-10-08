@@ -7,6 +7,7 @@ import {HttpError,fail,object,text,number,wineInput,dishInput,preferences} from 
 import {parseWineCsv,signature} from './import-csv.js';
 import {recordSuggestions,selectWine,wineStatistics} from './service-history.js';
 import {STOCK_REASONS,stockMovement,stockHistory,previousStockRequest} from './stock-ledger.js';
+import {mfaStatus,startEnrollment,confirmEnrollment,startMfaChallenge,verifyMfaChallenge,disableMfa} from './mfa.js';
 
 
 const loginAttempts=new Map();
@@ -85,12 +86,33 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     finally{concurrentLogins--;}
     if(!session){countFailed(ip,slug,email);fail('Identifiants incorrects.',401);}
     loginAttempts.delete(accountKey(slug,email));
+    if(session.mfaUser)return {body:startMfaChallenge(db,session.mfaUser)};
+    return {body:{user:session.user},headers:{'Set-Cookie':cookieFor(session.token,secure)}};
+  }
+  if(method==='POST'&&path==='/api/login/mfa'){
+    const o=object(body),challenge=text(o.challenge,'Défi',80),code=text(o.code,'Code',64);
+    const session=verifyMfaChallenge(db,challenge,code);
     return {body:{user:session.user},headers:{'Set-Cookie':cookieFor(session.token,secure)}};
   }
   if(!user)fail('Authentification nécessaire.',401);
   const tenant=user.restaurant_id;
 
   if(method==='GET'&&path==='/api/me')return {body:{user:publicUser(user)}};
+  if(method==='GET'&&path==='/api/me/mfa')
+    return {body:mfaStatus(db,user)};
+  if(method==='POST'&&path==='/api/me/mfa/setup'){
+    const o=object(body);
+    return {body:startEnrollment(db,user,o.password)};
+  }
+  if(method==='POST'&&path==='/api/me/mfa/confirm'){
+    const o=object(body),result=confirmEnrollment(db,user,o.code);
+    return {body:result,headers:{'Set-Cookie':expiredCookie(secure)}};
+  }
+  if(method==='POST'&&path==='/api/me/mfa/disable'){
+    const o=object(body),result=disableMfa(db,user,o.password,o.code);
+    return {body:result,headers:{'Set-Cookie':expiredCookie(secure)}};
+  }
+
   if(method==='POST'&&path==='/api/me/password'){
     const o=object(body);
     if(!verifyPassword(user,o.currentPassword))fail('Mot de passe actuel incorrect.',403);
@@ -100,6 +122,7 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
       db.prepare('UPDATE users SET salt=?,password_hash=? WHERE restaurant_id=? AND id=?')
         .run(credentials.salt,credentials.passwordHash,tenant,user.id);
       db.prepare('DELETE FROM sessions WHERE user_id=?').run(user.id);
+      db.prepare('DELETE FROM mfa_challenges WHERE user_id=?').run(user.id);
       record(db,user,'password-change','user',user.id,undefined,{sessionsRevoked:true});
     });
     return {body:{ok:true},headers:{'Set-Cookie':expiredCookie(secure)}};
@@ -116,7 +139,10 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     transaction(db,()=>{
       db.prepare('UPDATE users SET active=? WHERE restaurant_id=? AND id=?')
         .run(Number(o.active),tenant,target.id);
-      if(!o.active)db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+      if(!o.active){
+        db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+        db.prepare('DELETE FROM mfa_challenges WHERE user_id=?').run(target.id);
+      }
       record(db,user,o.active?'activate':'deactivate','user',target.id,
         {active:!!target.active},{active:o.active});
     });
@@ -134,6 +160,7 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
       db.prepare('UPDATE users SET salt=?,password_hash=? WHERE restaurant_id=? AND id=?')
         .run(credentials.salt,credentials.passwordHash,tenant,target.id);
       db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+      db.prepare('DELETE FROM mfa_challenges WHERE user_id=?').run(target.id);
       record(db,user,'password-reset','user',target.id,undefined,{sessionsRevoked:true});
     });
     return {body:{ok:true}};

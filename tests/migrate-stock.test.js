@@ -30,12 +30,12 @@ test('migration v2->v3 creates an explicit stock baseline, not fictional sale hi
  assert.equal(restoreToNewPath(file,historical).version,2);
  const openedRecovered=openDatabase(historical);
  try{
-  assert.equal(openedRecovered.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
+  assert.equal(openedRecovered.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,4);
   assert.equal(openedRecovered.prepare('SELECT COUNT(*) AS n FROM stock_movements').get().n,1);
  }finally{openedRecovered.close();}
  const db=openDatabase(file);
  try{
-  assert.equal(db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
+  assert.equal(db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,4);
   const row=db.prepare('SELECT * FROM stock_movements WHERE restaurant_id=? AND wine_id=?').get(tenant,id);
   assert.equal(row.reason,'baseline');
   assert.equal(row.delta,17);

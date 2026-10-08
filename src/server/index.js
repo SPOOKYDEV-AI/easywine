@@ -3,6 +3,7 @@ import http from 'node:http';
 import {pathToFileURL} from 'node:url';
 import {openDatabase} from './db.js';
 import {getUser} from './auth.js';
+import {verifyMfaServerKey} from './mfa.js';
 import {route} from './routes.js';
 import {HttpError} from './validation.js';
 import {json,jsonBody,staticFile} from './http.js';
@@ -43,12 +44,16 @@ export function start(){
  if(production&&(!origin||!origin.startsWith('https://')))
    throw new Error('EASYWINE_ORIGIN must specify the HTTPS application origin');
  const db=openDatabase();
- const server=createApp({db,origin,secure:production});
- server.requestTimeout=15000;server.headersTimeout=10000;
- const port=Number(process.env.PORT||3000),host=process.env.HOST||'127.0.0.1';
- server.listen(port,host,()=>console.log('EasyWine on '+host+':'+port));
- const stop=()=>server.close(()=>{db.close();process.exit(0);});
- process.once('SIGINT',stop);process.once('SIGTERM',stop);
- return server;
+ try{
+  // Never expose login routes for users with unreadable active MFA credentials.
+  verifyMfaServerKey(db);
+  const server=createApp({db,origin,secure:production});
+  server.requestTimeout=15000;server.headersTimeout=10000;
+  const port=Number(process.env.PORT||3000),host=process.env.HOST||'127.0.0.1';
+  server.listen(port,host,()=>console.log('EasyWine on '+host+':'+port));
+  const stop=()=>server.close(()=>{db.close();process.exit(0);});
+  process.once('SIGINT',stop);process.once('SIGTERM',stop);
+  return server;
+ }catch(error){db.close();throw error;}
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)start();

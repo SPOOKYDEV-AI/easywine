@@ -2,14 +2,20 @@
 import {byId,request,notice,handle,empty} from './ui.js';
 import {renderService} from './service.js';
 import {renderStats} from './stats.js';
-import {renderWines,renderDishes,renderHistory,renderUsers,renderAccount,addUserButton} from './admin.js';
+import {renderWines,renderDishes,renderHistory,renderUsers,addUserButton} from './admin.js';
+import {renderAccount} from './account.js';
 
 let currentUser=null;
+let pendingMfaChallenge=null;
 let currentView='service';
 let store={wines:[],dishes:[]};
 const workspace=byId('workspace');
 
 function showLogin(){
+ pendingMfaChallenge=null;
+ byId('login-form').hidden=false;
+ byId('mfa-form').hidden=true;
+ byId('mfa-form').elements.code.value='';
  currentUser=null;
  byId('shell').hidden=true;
  byId('login').hidden=false;
@@ -49,7 +55,7 @@ async function view(name){
  else if(name==='users'){
   await renderUsers(workspace,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
   if(currentUser.role==='owner')addUserButton(workspace,refresh);
- }else if(name==='account')renderAccount(workspace,currentUser,showLogin);
+ }else if(name==='account')await renderAccount(workspace,currentUser,showLogin);
  workspace.focus({preventScroll:true});
 }
 byId('login-form').addEventListener('submit',handle(async event=>{
@@ -63,10 +69,32 @@ byId('login-form').addEventListener('submit',handle(async event=>{
    email:String(form.get('email')).trim(),
    password:String(form.get('password'))
   });
+  if(result.mfaRequired){
+   pendingMfaChallenge=result.challenge;
+   byId('login-form').hidden=true;
+   byId('mfa-form').hidden=false;
+   byId('mfa-form').elements.code.focus();
+   return;
+  }
   currentUser=result.user;
   await load();showShell();await view('service');
  }finally{submit.disabled=false;}
 }));
+
+byId('mfa-form').addEventListener('submit',handle(async event=>{
+ event.preventDefault();
+ if(!pendingMfaChallenge)throw Error('Votre défi de sécurité a expiré. Recommencez la connexion.');
+ const submit=event.target.querySelector('button[type=submit]');
+ submit.disabled=true;
+ try{
+  const code=String(new FormData(event.target).get('code')||'').trim();
+  const result=await request('POST','/api/login/mfa',{challenge:pendingMfaChallenge,code});
+  pendingMfaChallenge=null;
+  currentUser=result.user;
+  await load();showShell();await view('service');
+ }finally{submit.disabled=false;}
+}));
+byId('mfa-cancel').addEventListener('click',showLogin);
 for(const button of document.querySelectorAll('#menu [data-view]')){
  button.addEventListener('click',handle(()=>view(button.dataset.view)));
 }
