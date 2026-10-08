@@ -7,6 +7,7 @@ const assets={
   '/app.js':['app.js','text/javascript; charset=utf-8'],
   '/ui.js':['ui.js','text/javascript; charset=utf-8'],
   '/service.js':['service.js','text/javascript; charset=utf-8'],
+  '/stats.js':['stats.js','text/javascript; charset=utf-8'],
   '/admin.js':['admin.js','text/javascript; charset=utf-8'],
   '/styles.css':['styles.css','text/css; charset=utf-8'],
   '/favicon.svg':['favicon.svg','image/svg+xml']
