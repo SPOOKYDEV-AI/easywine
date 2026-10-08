@@ -20,7 +20,7 @@ async function makeFixtures(slug,email,producer){
   body:JSON.stringify({slug,email,password:secret})});
  assert.equal(login.status,200);
  const cookie=login.headers.get('set-cookie').split(';')[0];
- const body={producer,cuvee:'Cuvée '+slug,color:'rouge',body:4,acidity:4,tannin:3,
+ const body={producer,cuvee:'Cuvée '+slug,color:'rouge',tags:[],body:4,acidity:4,tannin:3,
    aromatic:3,priceCents:7500,stock:4,active:true,byGlass:false};
  const result=await fetch(root+'/api/wines',{method:'POST',headers:{
   Origin:root,Cookie:cookie,'Content-Type':'application/json','X-EasyWine-Request':'1'},
