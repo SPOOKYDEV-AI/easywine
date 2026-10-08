@@ -8,13 +8,37 @@ export const id=()=>randomUUID();
 export const encode=x=>JSON.stringify(x);
 export const decode=(x,def=[])=>{try{return x===null?def:JSON.parse(x);}catch{return def;}};
 
+
+const SCHEMA_VERSION=1;
+function migrate(db){
+  const exists=db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='schema_version'").get();
+  if(!exists){
+    // SQLite DDL participates in this transaction. A crash cannot leave half
+    // of the initial schema, and a later release must use explicit migrations.
+    transaction(db,()=>{
+      db.exec(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
+      const version=db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v;
+      if(version!==SCHEMA_VERSION)throw Error('Unexpected initialization schema');
+    });
+    return;
+  }
+  const version=db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v;
+  if(version!==SCHEMA_VERSION){
+    throw Error('Unsupported database schema version '+version+
+      ', expected '+SCHEMA_VERSION+'. Do not start until an explicit migration is supplied.');
+  }
+}
 export function openDatabase(filename=process.env.EASYWINE_DB||resolve('.data/easywine.sqlite')){
+  // Ensure database files created by SQLite are private from the start.
+  process.umask(0o077);
   if(filename!==':memory:')mkdirSync(dirname(resolve(filename)),{recursive:true,mode:0o700});
   const db=new DatabaseSync(filename);
-  db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
-  if(filename!==':memory:')db.exec('PRAGMA journal_mode=WAL;');
-  db.exec(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
-  return db;
+  try{
+    db.exec('PRAGMA foreign_keys=ON; PRAGMA busy_timeout=5000;');
+    if(filename!==':memory:')db.exec('PRAGMA journal_mode=WAL;');
+    migrate(db);
+    return db;
+  }catch(error){db.close();throw error;}
 }
 export function transaction(db,fn){
   db.exec('BEGIN IMMEDIATE');
