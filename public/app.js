@@ -82,6 +82,7 @@ async function view(name){
  if(!currentUser)return;
  if(currentUser.role==='staff'&&!['service','account'].includes(name))name='service';
  const epoch=++viewEpoch;
+ const previousView=currentView;
  currentView=name;
  for(const button of document.querySelectorAll('#menu [data-view]')){
   const active=button.dataset.view===name;
@@ -119,6 +120,7 @@ async function view(name){
   }else if(name==='account')await mod.renderAccount(staging,currentUser,showLogin);
   if(epoch!==viewEpoch)return;
   target.replaceChildren(...staging.childNodes);
+  if(previousView!==name)window.scrollTo(0,0);
   target.focus({preventScroll:true});
   performance.mark('easywine:view:'+name+':ready');
  }catch(error){
