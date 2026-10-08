@@ -138,7 +138,7 @@ try{
  assert.equal(mobile.horizontalOverflow,0);
  assert.ok(mobile.minNavHeight>=43);
  await page.emulateMedia({reducedMotion:'reduce'});
- assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('.loading-spinner')||document.querySelector('.boot-progress span')).animationDuration),'0s');
+ assert.equal(await page.evaluate(()=>getComputedStyle(document.querySelector('#boot .wine-glass__liquid')).animationName),'none');
  assert.deepEqual(errors,[]);
  mkdirSync('test-artifacts',{recursive:true});
  const metrics={platform:process.platform,synthetic:true,viewport:{desktop,mobile},navDurationsMs:times,errors};
