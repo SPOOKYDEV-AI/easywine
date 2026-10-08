@@ -133,7 +133,7 @@ try{
  await page.getByText('Réserve de test').waitFor();
  const mobile=await page.evaluate(()=>({
   horizontalOverflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),
-  minNavHeight:Math.min(...[...document.querySelectorAll('#menu .nav-link')].map(x=>x.getBoundingClientRect().height))
+  minNavHeight:Math.min(...[...document.querySelectorAll('#mobile-nav button:not([hidden])')].map(x=>x.getBoundingClientRect().height))
  }));
  assert.equal(mobile.horizontalOverflow,0);
  assert.ok(mobile.minNavHeight>=43);
