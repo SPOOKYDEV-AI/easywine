@@ -141,6 +141,8 @@ export function loadingStage(host,message){
 export function watchLongLoading(host,delayMs=2800){
  const indicator=host.querySelector('.view-loading,.boot-content');
  if(!indicator)return ()=>{};
+ const detail=indicator.querySelector('.loading-detail');
+ if(detail)detail.hidden=true; // No stale slow-warning on the next login/retry.
  const timer=setTimeout(()=>{
   if(!indicator.isConnected)return;
   const detail=indicator.querySelector('.loading-detail');
