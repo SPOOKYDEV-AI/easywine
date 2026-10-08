@@ -89,6 +89,16 @@ Le premier audit a révélé des contrastes insuffisants sur six écrans (textes
 
 Un score LCP/CLS obtenu en Chrome CI sur un serveur loopback et des données de démonstration n'est **pas** un résultat garanti sur le réseau 3G/4G/Wi-Fi du restaurant. Une valeur INP au 75e percentile nécessite des sessions réelles, suffisamment nombreuses, instrumentées avec consentement, politique de conservation et contrôle d'accès appropriés. Les tests de laboratoire servent à détecter des régressions, pas à annoncer une conformité globale.
 
+## Audit automatisé WCAG 2.2 A/AA (Chrome)
+
+La CI exécute `tests/browser-a11y.mjs` avec axe-core (uniquement installé pendant les tests). Les scans couvrent dix états : connexion, premier service, cave vide, création de vin, cave remplie, carte remplie, résultat de recommandation, compte, service mobile et menu mobile Plus. Toute violation remontée par axe-core avec les tags WCAG A/AA fait échouer la CI, avec un rapport JSON détaillé dans les artefacts de test.
+
+Le premier passage a révélé des contrastes insuffisants dans les légendes, l'interface secondaire et le statut d'une suggestion (4,39:1 au lieu de 4,5:1 pour les petits textes). Les couleurs ont été corrigées sans changer la direction artistique bordeaux/ivoire. **Zéro violation détectée** dans ce périmètre ne signifie ni absence de défaut ailleurs ni certification réglementaire : axe-core ne détecte pas tous les problèmes.
+
+L'outil d'audit est injecté **avant le chargement du document par Playwright** : la CSP restrictive de production est conservée, sans `unsafe-inline`, et la bibliothèque n'est pas chargée par les utilisateurs.
+
+La revue manuelle reste nécessaire : ordre de tabulation, lecteurs d'écran NVDA/VoiceOver, messages de statut et focus après erreurs, zoom 200–400 %, contrastes sur thèmes et appareils, interaction au clavier sans souris et tests avec personnes utilisatrices de technologies d'assistance. Documenter les constats et correctifs avant de marquer la conformité WCAG comme acquise.
+
 ## Détail des tests de résistance à compléter
 
 - [ ] Vérification manuelle clavier complet / lecteur d'écran / contrastes / zoom 200–400 %.
