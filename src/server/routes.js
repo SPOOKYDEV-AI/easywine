@@ -210,21 +210,33 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     });
     return {body:{dish:getDish(db,tenant,prior.id)}};
   }
+
   match=path.match(/^\/api\/dishes\/([0-9a-f-]{36})\/blocks$/);
+  if(method==='GET'&&match){
+    const dish=getDish(db,tenant,match[1]);
+    const wineIds=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=? ORDER BY wine_id')
+      .all(tenant,dish.id).map(r=>r.wine_id);
+    return {body:{wineIds,version:dish.version}};
+  }
   if(method==='PUT'&&match){
     assertRole(user,'owner','manager');
     const prior=getDish(db,tenant,match[1]),o=object(body);
+    const version=number(o.expectedVersion,'Version',1,2147483647);
     if(!Array.isArray(o.wineIds)||o.wineIds.length>1000)fail('Liste invalide.');
     const ids=[...new Set(o.wineIds)];
     for(const wid of ids)getWine(db,tenant,text(wid,'Vin',80));
     transaction(db,()=>{
-      const before=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?').all(tenant,prior.id).map(x=>x.wine_id);
+      const result=db.prepare('UPDATE dishes SET version=version+1,updated_at=? WHERE restaurant_id=? AND id=? AND version=?')
+        .run(now(),tenant,prior.id,version);
+      if(result.changes!==1)fail('Les règles du plat ont changé entre-temps.',409);
+      const before=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?')
+        .all(tenant,prior.id).map(r=>r.wine_id);
       db.prepare('DELETE FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?').run(tenant,prior.id);
       const add=db.prepare('INSERT INTO blocked_pairings(restaurant_id,dish_id,wine_id) VALUES(?,?,?)');
       for(const wid of ids)add.run(tenant,prior.id,wid);
       record(db,user,'set-blocks','dish',prior.id,before,ids);
     });
-    return {body:{wineIds:ids}};
+    return {body:{wineIds:ids,dish:getDish(db,tenant,prior.id)}};
   }
   if(method==='POST'&&path==='/api/recommend'){
     const p=preferences(body),dish=getDish(db,tenant,p.dishId);
@@ -235,7 +247,7 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     const results=recommend({dish,wines,blockedWineIds:blocked,styles:p.styles,color:p.color,
       minPriceCents:p.minPriceCents,maxPriceCents:p.maxPriceCents,
       diversifyPrices:p.minPriceCents===null&&p.maxPriceCents===null});
-    return {body:{dish,classic:classic?{wine:classic,available:classic.active&&classic.stock>0}:null,
+    return {body:{dish, classic:classic?{wine:classic,available:classic.active&&classic.stock>0&&!blocked.includes(classic.id),blocked:blocked.includes(classic.id)}:null,
       recommendations:results,explanation:'Compatibilité indicative calculée sur les profils renseignés par le restaurant, sans recours au prix comme critère de qualité.'}};
   }
   if(method==='GET'&&path==='/api/audit'){
