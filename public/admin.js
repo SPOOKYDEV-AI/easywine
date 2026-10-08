@@ -78,6 +78,7 @@ export function renderWines(container,{wines},refresh){
 
 function importEditor(refresh){
  let validatedCsv=null;
+ let previewEpoch=0;
  edit('Importer une cave CSV',fields=>{
   fields.append(e('p',{class:'muted',text:'Champs requis : producer, cuvee, color, body, acidity, tannin, aromatic, price_eur, stock. Séparateur point-virgule ou virgule.'}));
   const file=e('input',{type:'file',accept:'.csv,text/csv'});
@@ -85,14 +86,17 @@ function importEditor(refresh){
   fields.append(e('label',{},'Fichier CSV',file),preview);
   file.addEventListener('change',handle(async()=>{
    validatedCsv=null;
+   const epoch=++previewEpoch;
    const selected=file.files[0];
-   if(!selected)return;
+   if(!selected){preview.textContent='Sélectionnez votre CSV pour vérifier les références.';return;}
    if(selected.size>130000)throw Error('CSV limité à 130 Ko.');
    preview.setAttribute('aria-busy','true');
    preview.replaceChildren(wineGlass('mini'),e('span',{text:' Vérification de votre fichier…'}));
    try{
     const source=await selected.text();
+    if(epoch!==previewEpoch)return;
     const summary=await request('POST','/api/import/wines/preview',{csv:source});
+    if(epoch!==previewEpoch)return;
     preview.replaceChildren(e('p',{text:summary.valid+' références valides sur '+summary.total+'.'}));
     for(const item of summary.sample)preview.append(e('p',{text:item.producer+' · '+item.cuvee+' · '+euro(item.priceCents)}));
     for(const issue of summary.errors.slice(0,10))preview.append(e('p',{class:'danger',text:'Ligne '+issue.line+' : '+issue.error}));
@@ -102,10 +106,11 @@ function importEditor(refresh){
      preview.prepend(e('p',{class:'preview-confirmation',text:'✓ Fichier vérifié · prêt à importer.'}));
     }
    }catch(error){
+    if(epoch!==previewEpoch)return;
     preview.replaceChildren(e('p',{class:'danger',text:'Import indisponible : le fichier n’a pas été validé.'}));
     throw error;
    }finally{
-    preview.removeAttribute('aria-busy');
+    if(epoch===previewEpoch)preview.removeAttribute('aria-busy');
    }
   }));
  },async()=>{
