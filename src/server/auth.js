@@ -40,9 +40,16 @@ export async function signIn(db,{slug,email,password}){
   const actual=await makeHashAsync(password,user?.salt??dummySalt);
   const expected=user?.password_hash??dummyHash;
   if(!timingSafeEqual(Buffer.from(actual,'hex'),Buffer.from(expected,'hex'))||!user)return null;
+  // scrypt runs off-thread: password/role/active state may change while we await.
+  // Never issue a session from an obsolete password snapshot.
+  const fresh=db.prepare(
+    'SELECT u.*,r.slug,r.name AS restaurant_name FROM users u '+
+    'JOIN restaurants r ON r.id=u.restaurant_id WHERE u.id=? AND u.active=1'
+  ).get(user.id);
+  if(!fresh||fresh.salt!==user.salt||fresh.password_hash!==user.password_hash)return null;
   const mfa=db.prepare('SELECT enabled FROM mfa_credentials WHERE user_id=?').get(user.id);
-  if(mfa?.enabled)return {mfaUser:user}; // No authenticated session until second factor
-  return issueSession(db,user);
+  if(mfa?.enabled)return {mfaUser:fresh}; // No authenticated session until second factor
+  return issueSession(db,fresh);
 }
 export function issueSession(db,user,{insideTransaction=false}={}){
   const token=randomBytes(32).toString('base64url');
