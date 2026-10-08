@@ -94,6 +94,10 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     const session=verifyMfaChallenge(db,challenge,code);
     return {body:{user:session.user},headers:{'Set-Cookie':cookieFor(session.token,secure)}};
   }
+  // Anonymous boot may query session status without a noisy, expected 401.
+  // Keep the protected /api/me and all other resources strictly authenticated.
+  if(method==='GET'&&path==='/api/session')
+    return {body:{user:user?publicUser(user):null}};
   if(!user)fail('Authentification nécessaire.',401);
   const tenant=user.restaurant_id;
 
