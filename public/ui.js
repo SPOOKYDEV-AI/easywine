@@ -38,10 +38,43 @@ export function select(name,options,selected){
  return s;
 }
 let noticeTimer;
-export function notice(message,{error=false}={}){
- const n=byId('notification');n.textContent=message;n.hidden=false;
- n.setAttribute('role',error?'alert':'status');
- clearTimeout(noticeTimer);noticeTimer=setTimeout(()=>{n.hidden=true;},5200);
+export function wineGlass(size='inline'){
+ const source=byId('wine-glass-template')?.content.firstElementChild;
+ if(!source)return element('span',{class:'loading-spinner','aria-hidden':'true'});
+ const glass=source.cloneNode(true);
+ glass.classList.remove('wine-glass--inline');
+ glass.classList.add('wine-glass--'+size);
+ return glass;
+}
+export function dismissNotice(){
+ const n=byId('notification');
+ clearTimeout(noticeTimer);
+ n.hidden=true;
+ if(n.parentElement?.id==='editor')document.body.append(n);
+}
+export function notice(message,{error=false,type}={}){
+ const n=byId('notification');
+ const editor=byId('editor');
+ // A modal dialog lives in the browser's top layer: body-level toasts would
+ // otherwise be hidden behind its backdrop. Announce errors inside the modal.
+ if(editor?.open){
+  editor.append(n);
+  editor.addEventListener('close',()=>{if(n.parentElement===editor)dismissNotice();},{once:true});
+ }else if(n.parentElement!==document.body){
+  document.body.append(n);
+ }
+ const kind=error?'error':type==='info'?'info':'success';
+ clearTimeout(noticeTimer);
+ n.dataset.type=kind;
+ n.setAttribute('role',kind==='error'?'alert':'status');
+ n.replaceChildren(
+  element('span',{class:'feedback-symbol','aria-hidden':'true',text:kind==='success'?'✓':kind==='error'?'!':'i'}),
+  element('span',{class:'feedback-copy',text:message}),
+  element('button',{type:'button',class:'feedback-dismiss','aria-label':'Fermer la notification',
+   text:'×',onClick:dismissNotice})
+ );
+ n.hidden=false;
+ if(kind!=='error')noticeTimer=setTimeout(dismissNotice,4600);
 }
 let requestScope=0;
 export function rotateRequestScope(){
@@ -91,8 +124,8 @@ export function handle(fn){
  };
 }
 export function loadingState(message='Chargement de votre espace…'){
- return element('div',{class:'panel view-loading',role:'status','aria-live':'polite'},
-  element('span',{class:'loading-spinner','aria-hidden':'true'}),
+ return element('div',{class:'panel view-loading',role:'status','aria-live':'polite','aria-label':message},
+  wineGlass('inline'),
   element('p',{text:message}));
 }
 export function errorState(message,retry){
@@ -110,7 +143,7 @@ export async function withBusy(button,action,label='Traitement en cours…'){
  button.disabled=true;
  button.classList.add('is-busy');
  button.setAttribute('aria-busy','true');
- button.replaceChildren(document.createTextNode(label));
+ button.replaceChildren(wineGlass('mini'),document.createTextNode(label));
  try{return await action();}
  finally{
   button.replaceChildren(...originalNodes);

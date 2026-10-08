@@ -59,6 +59,8 @@ jobs:
         run: node tests/browser-network-history.mjs
       - name: Audit WCAG 2.2 A/AA across real workflows
         run: node tests/browser-a11y.mjs
+      - name: Verify premium motion and interaction feedback
+        run: node tests/browser-premium.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
