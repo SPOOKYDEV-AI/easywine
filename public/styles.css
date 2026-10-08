@@ -190,3 +190,6 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .nav-link{color:#594d52}
 .item-row p{color:#605359}
 .mobile-nav button{color:#605359}
+
+/* Result status text is only 11.5px; ensure full small-text contrast. */
+.status{color:#76553f}
