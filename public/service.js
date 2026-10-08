@@ -81,16 +81,14 @@ export function renderService(container,{dishes}){
 
  left.append(pills('02 · Les envies du client',styles.slice(0,6),
    x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}));
- const extraStyles=e('details',{class:'optional-filters'},
-  e('summary',{text:'Plus de styles'}),
-  pills('',styles.slice(6),
-    x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}));
- left.append(extraStyles);
- const optional=e('details',{class:'optional-filters'},
-  e('summary',{text:'Couleur et budget · facultatifs'}),
+
+ const advanced=e('details',{class:'optional-filters'},
+  e('summary',{text:'Personnaliser davantage'}),
+  pills('Autres styles',styles.slice(6),
+    x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}),
   pills('Couleur / type de vin',colors,x=>x===chosenColor,x=>{chosenColor=x;}),
   pills('Budget éventuel',budgets,x=>x===chosenBudget,x=>{chosenBudget=x;}));
- left.append(optional);
+ left.append(advanced);
  const submit=e('button',{type:'button',class:'button primary service-submit',text:'Trouver les meilleurs accords →'});
  left.append(submit);
  right.append(e('div',{class:'results-placeholder'},e('div',{class:'placeholder-icon',text:'✧'}),
