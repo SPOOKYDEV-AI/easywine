@@ -1,6 +1,6 @@
 
 import {byId,request,notice,handle,loadingState,errorState,withBusy} from './ui.js';
-import {renderService} from './service.js';
+import {renderService,resetServicePreferences} from './service.js';
 import {renderStats} from './stats.js';
 import {renderWines,renderDishes,renderHistory,renderUsers,addUserButton} from './admin.js';
 import {renderAccount} from './account.js';
@@ -13,6 +13,8 @@ let viewEpoch=0;
 const workspace=byId('workspace');
 
 function showLogin(){
+ store={wines:[],dishes:[]};
+ resetServicePreferences();
  viewEpoch++;
  byId('boot').hidden=true;
  byId('workspace').setAttribute('aria-busy','false');
@@ -146,6 +148,10 @@ byId('logout').addEventListener('click',logout);
 byId('logout-mobile').addEventListener('click',logout);
 window.addEventListener('easywine:unauthorized',showLogin);
 async function boot(){
+ const bootNode=byId('boot');
+ if(!bootNode.querySelector('.boot-content')){
+  bootNode.replaceChildren(loadingState('Vérification de votre session…'));
+ }
  byId('boot').hidden=false;
  byId('login').hidden=true;
  byId('shell').hidden=true;
