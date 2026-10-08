@@ -53,6 +53,8 @@ jobs:
         run: node tests/browser-scale.mjs
       - name: Walk through first restaurant setup and recommendation
         run: node tests/browser-onboarding.mjs
+      - name: Verify mobile navigation and accessibility
+        run: node tests/browser-mobile-nav.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
