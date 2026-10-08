@@ -57,3 +57,39 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .secret-value{padding:1rem;background:#f7f2ed;border-radius:10px;font-size:1.05rem;letter-spacing:.09em;overflow-wrap:anywhere;user-select:all}
 .recovery-codes{font:600 .88rem/1.85 ui-monospace,Consolas,monospace;background:#f8f5f0;border:1px solid #eaddd2;border-radius:10px;padding:1rem;white-space:pre-wrap;overflow-wrap:anywhere;user-select:all}
 @media(max-width:900px){.account-grid{grid-template-columns:1fr}}
+
+/* UX foundation: first paint, perceived latency, keyboard focus, touch targets. */
+.boot-screen{position:fixed;inset:0;z-index:100;display:grid;place-items:center;background:#f8f6f2;padding:1.5rem}
+.boot-content{text-align:center;width:min(300px,100%)}
+.boot-brand{display:inline-flex;align-items:center;justify-content:center;font-size:2.1rem;font-weight:750;letter-spacing:-.06em;color:#682c3c}
+.boot-progress{height:3px;overflow:hidden;border-radius:999px;background:#e7dcd7;margin:2rem auto 1rem}
+.boot-progress span{display:block;width:35%;height:100%;background:#9f6876;border-radius:999px;animation:boot-slide 1.4s ease-in-out infinite alternate}
+#boot-message{font-size:.85rem;color:#776b6b;margin:0}
+.noscript-note{position:fixed;inset:auto 1rem 1rem;z-index:200;background:#fff3e3;color:#623a1f;padding:1rem;border-radius:10px}
+@keyframes boot-slide{from{transform:translateX(-100%)}to{transform:translateX(285%)}}
+.view-loading{min-height:205px;display:flex;flex-direction:column;gap:1.3rem;justify-content:center;align-items:center;text-align:center}
+.view-loading p{color:#817577;font-size:.9rem;margin:0}
+.loading-spinner{width:31px;height:31px;border:3px solid #e9dfdb;border-top-color:#682c3c;border-radius:50%;animation:ew-spin .75s linear infinite}
+@keyframes ew-spin{to{transform:rotate(360deg)}}
+.view-error{padding:2.3rem;text-align:center;border:1px solid #eedbd9;border-radius:16px;background:#fff}
+.view-error h2{font-size:1.5rem;margin-bottom:.7rem}
+.view-error p{color:#786a6b;max-width:480px;margin:0 auto 1rem}
+.button.is-busy{position:relative;pointer-events:none}
+.button.is-busy::before{content:"";height:.8rem;width:.8rem;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:ew-spin .7s linear infinite}
+[aria-busy="true"]{cursor:progress}
+:where(button,a,input,select,textarea,summary):focus-visible{outline:3px solid #ad7a4e;outline-offset:3px}
+:where(.nav-link,.logout-button,.subtle-button,.icon-button,.mobile-logout){min-height:44px}
+.icon-button{min-width:44px}
+#notification{max-width:min(430px,calc(100vw - 1.5rem));word-break:break-word}
+.nav-link[aria-current="page"]{background:#f4e9e8;color:#682c3c}
+@media(max-width:680px){
+ .topbar{padding-inline:.8rem}
+ .item-actions .subtle-button{min-height:44px}
+ .chip{min-height:44px}
+ .editor-form{max-height:88dvh;overflow:auto}
+ .boot-brand{font-size:1.9rem}
+}
+@media(prefers-reduced-motion:reduce){
+ .boot-progress span,.loading-spinner,.button.is-busy::before{animation:none}
+ *,*::before,*::after{scroll-behavior:auto!important;transition-duration:0ms!important;animation-duration:0ms!important}
+}
