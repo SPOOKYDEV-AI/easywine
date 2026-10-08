@@ -32,7 +32,8 @@ try{
  await login();
  await page.locator('#shell:not([hidden])').waitFor();
  await page.locator('#menu [data-view=account]').click();
- await page.locator('.account-grid input[autocomplete=current-password]').last().fill('Chrome-MFA-Test-2026!');
+ await page.getByRole('button',{name:'Commencer la configuration'}).waitFor();
+ await page.locator('.account-grid section').last().locator('input[type=password]').fill('Chrome-MFA-Test-2026!');
  await page.getByRole('button',{name:'Commencer la configuration'}).click();
  try{await page.locator('.secret-value').waitFor({timeout:8000});}
  catch(error){
