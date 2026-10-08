@@ -9,7 +9,7 @@ export const encode=x=>JSON.stringify(x);
 export const decode=(x,def=[])=>{try{return x===null?def:JSON.parse(x);}catch{return def;}};
 
 
-const SCHEMA_VERSION=1;
+const SCHEMA_VERSION=2;
 function migrate(db){
   const exists=db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='schema_version'").get();
   if(!exists){
@@ -20,11 +20,21 @@ function migrate(db){
     transaction(db,()=>{
       db.exec(readFileSync(new URL('./schema.sql',import.meta.url),'utf8'));
       const version=db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v;
-      if(version!==SCHEMA_VERSION)throw Error('Unexpected initialization schema');
+      if(version!==1)throw Error('Unexpected initialization schema');
     });
-    return;
+    // Fall through to the versioned migration below.
+
   }
-  const version=db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v;
+
+  let version=db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v;
+  if(version===1){
+    transaction(db,()=>{
+      db.exec(readFileSync(new URL('./migrations/002-service-events.sql',import.meta.url),'utf8'));
+      db.prepare('DELETE FROM schema_version').run();
+      db.prepare('INSERT INTO schema_version(version) VALUES(?)').run(2);
+    });
+    version=2;
+  }
   if(version!==SCHEMA_VERSION){
     throw Error('Unsupported database schema version '+version+
       ', expected '+SCHEMA_VERSION+'. Do not start until an explicit migration is supplied.');
