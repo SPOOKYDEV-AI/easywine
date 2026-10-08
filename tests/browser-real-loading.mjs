@@ -68,8 +68,8 @@ try{
   el.getAnimations().some(a=>a.animationName==='wine-tide'&&a.playState==='running')),true);
  assert.equal(await page.locator('#boot').innerText().then(s=>s.includes('%')),false);
  releaseDish();
- await page.unroute('**/api/dishes');
  await page.locator('#shell:not([hidden])').waitFor();
+ await page.unroute('**/api/dishes');
  await page.getByRole('button',{name:/Trouver les meilleurs accords/}).waitFor();
  assert.equal(await page.locator('#boot').isVisible(),false);
 
@@ -88,8 +88,8 @@ try{
  await page.locator('#workspace[aria-busy=true] .wine-glass--inline').waitFor();
  await page.locator('#workspace .loading-detail:not([hidden])').waitFor({timeout:7000});
  releaseStats();
- await page.unroute('**/api/stats');
  await page.getByText('Statistiques du service').waitFor();
+ await page.unroute('**/api/stats');
  assert.equal(await page.locator('#workspace .view-loading').count(),0);
  assert.equal(await page.locator('#workspace').getAttribute('aria-busy'),'false');
 
@@ -124,8 +124,8 @@ try{
  assert.deepEqual(colors,{wine:'rgb(233, 173, 174)',outline:'rgb(255, 249, 244)',busy:'true'});
  assert.equal(await page.locator('#editor').isVisible(),true);
  releasePatch();
- await page.unroute('**/api/wines/*');
  await page.locator('#editor').waitFor({state:'hidden'});
+ await page.unroute('**/api/wines/*');
  await page.locator('#notification[data-type=success]').waitFor();
 
  await page.emulateMedia({reducedMotion:'reduce'});
