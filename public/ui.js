@@ -91,14 +91,14 @@ export async function paint(){
 }
 export async function withBusy(button,action,label='Traitement en cours…'){
  if(button.disabled)return;
- const original=button.textContent;
+ const originalNodes=[...button.childNodes];
  button.disabled=true;
  button.classList.add('is-busy');
  button.setAttribute('aria-busy','true');
- button.textContent=label;
+ button.replaceChildren(document.createTextNode(label));
  try{return await action();}
  finally{
-  button.textContent=original;
+  button.replaceChildren(...originalNodes);
   button.disabled=false;
   button.classList.remove('is-busy');
   button.removeAttribute('aria-busy');
