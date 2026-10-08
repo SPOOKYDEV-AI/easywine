@@ -3,6 +3,7 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {openDatabase} from './db.js';
 import {createBackup,restoreToNewPath} from './maintenance.js';
+import {loadBackupKey,createEncryptedBackup,restoreEncryptedBackup} from './encrypted-backup.js';
 import {pruneServiceHistory} from './service-history.js';
 
 export async function main(args=process.argv.slice(2)){
@@ -16,6 +17,24 @@ export async function main(args=process.argv.slice(2)){
       const result=await createBackup(database,resolve(directory));
       console.log('Backup vérifié : '+result.name+' ('+result.pages+' pages, '+result.restaurants+' restaurants)');
     }finally{database.close();}
+  }else if(command==='backup-encrypted'){
+    const directory=option('--directory');
+    if(!directory)throw Error('Usage: npm run backup -- backup-encrypted --directory /private/backups');
+    const key=loadBackupKey();
+    const database=openDatabase();
+    try{
+      const result=await createEncryptedBackup(database,resolve(directory),key);
+      console.log('Sauvegarde chiffrée et vérifiée : '+result.name+' ('+result.pages+' pages)');
+    }finally{database.close();key.fill(0);}
+  }else if(command==='restore-encrypted'){
+    const source=option('--from'),target=option('--to');
+    if(!source||!target)throw Error('Usage: npm run backup -- restore-encrypted --from snapshot.ewb --to new.sqlite');
+    const key=loadBackupKey();
+    try{
+      const result=await restoreEncryptedBackup(source,target,key);
+      console.log('Restauration authentifiée et vérifiée vers : '+result.path);
+      console.log('Arrêtez EasyWine avant de sélectionner cette nouvelle base avec EASYWINE_DB.');
+    }finally{key.fill(0);}
   }else if(command==='restore'){
     const source=option('--from'),target=option('--to');
     if(!source||!target)throw Error('Usage: npm run backup -- restore --from /private/backup.sqlite --to /private/recovered.sqlite');
@@ -34,7 +53,7 @@ export async function main(args=process.argv.slice(2)){
       const count=pruneServiceHistory(db,before);
       console.log('Sessions de service supprimées : '+count+'.');
     }finally{db.close();}
-  }else throw Error('Usage: npm run backup -- backup --directory PATH | restore --from FILE --to NEW_FILE | prune-service-history --days N');
+  }else throw Error('Usage: npm run backup -- backup-encrypted --directory DIR | restore-encrypted --from EWB --to NEW_FILE | backup --directory DIR | restore --from FILE --to NEW_FILE | prune-service-history --days N');
 }
 if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href){
   process.umask(0o077);

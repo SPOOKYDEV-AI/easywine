@@ -49,6 +49,13 @@ try{
  await page.getByText('Canard rôti de test').waitFor();
  await page.locator('#menu [data-view=wines]').click();
  await page.getByText('Cuvée de validation').waitFor();
+ await page.getByRole('button',{name:'Mouvements'}).click();
+ await page.locator('#editor[open]').waitFor();
+ await page.locator('#editor input[name=delta]').fill('2');
+ await page.locator('#editor input[name=note]').fill('Livraison contrôlée');
+ await page.locator('#editor button[type=submit]').click();
+ await page.getByText('7 en stock').waitFor();
+
  await page.getByRole('button',{name:'Importer CSV'}).click();
  await page.locator('#editor[open]').waitFor();
  await page.locator('#editor input[type=file]').setInputFiles({

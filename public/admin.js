@@ -11,8 +11,8 @@ function edit(title,build,save){
  form.onsubmit=handle(async event=>{
   event.preventDefault();
   const data=new FormData(form);
-  await save(data);
-  dialog.close();notice('Modifications enregistrées.');
+  const confirmation=await save(data);
+  dialog.close();notice(typeof confirmation==='string'?confirmation:'Modifications enregistrées.');
  });
  dialog.showModal();
  byId('close-editor').onclick=()=>dialog.close();
@@ -48,6 +48,7 @@ export function renderWines(container,{wines},refresh){
     e('div',{class:'item-actions'},
       e('span',{class:'price',text:euro(w.priceCents)}),
       e('span',{class:'pill',text:w.active?(w.stock>0?w.stock+' en stock':'Épuisé'):'Désactivé'}),
+      e('button',{type:'button',class:'subtle-button',text:'Mouvements',onClick:handle(()=>stockEditor(w,refresh))}),
       e('button',{type:'button',class:'subtle-button',text:'Modifier',onClick:()=>wineEditor(w,refresh)}))));
   }
  }
@@ -77,8 +78,56 @@ function importEditor(refresh){
  },async()=>{
   if(!validatedCsv)throw Error('Vérifiez le CSV avant import.');
   const result=await request('POST','/api/import/wines/commit',{csv:validatedCsv});
-  notice(result.imported+' références importées.');
   await refresh();
+  return result.imported+' références importées.';
+ });
+}
+
+
+async function stockEditor(w,refresh){
+ const result=await request('GET','/api/wines/'+w.id+'/stock-movements');
+ const requestKey=crypto.randomUUID(); // Kept stable across retries of the same form
+ edit('Mouvements · '+w.producer+' '+w.cuvee,fields=>{
+  fields.append(e('p',{class:'muted',text:'Stock actuel : '+w.stock+
+    ' bouteille(s). Une sortie est saisie avec un nombre négatif. Cette opération ne confirme pas une vente POS.'}));
+  const grid=box(fields);
+  const variation=field(grid,'Variation (+ ou −)','delta','','number',true);
+  variation.step='1';variation.min='-1000000';variation.max='1000000';
+  choiceField(grid,'Motif','reason',[
+   ['restock','Réapprovisionnement'],['consumption','Consommation confirmée'],
+   ['loss','Casse / perte'],['correction','Correction d’inventaire']
+  ],'restock');
+  const forecast=e('p',{class:'hint',text:'Indiquez la variation pour voir le stock après mouvement.'});
+  variation.addEventListener('input',()=>{
+   const v=Number(variation.value);
+   forecast.textContent=variation.value&&Number.isSafeInteger(v)?
+     'Stock après mouvement : '+(w.stock+v)+' bouteille(s)':'Indiquez une variation entière.';
+  });
+  fields.append(forecast);
+  field(fields,'Justification à conserver dans l’historique','note','','text',true);
+  fields.append(e('h3',{text:'Historique des mouvements'}));
+  if(!result.movements.length)fields.append(empty('Aucun mouvement enregistré.'));
+  const history=e('div',{class:'stock-movement-list'});
+  for(const item of result.movements.slice(0,30)){
+   const amount=(item.delta>0?'+':'')+item.delta;
+   history.append(e('div',{class:'stock-movement-row'},
+    e('strong',{text:amount+' · '+item.reason+' · '+item.afterStock+' en stock'}),
+    e('p',{class:'hint',text:item.note+' · '+(item.actor||'Migration')+' · '+
+      new Date(item.at).toLocaleString('fr-FR')})
+   ));
+  }
+  fields.append(history);
+ },async form=>{
+  const delta=Number(form.get('delta'));
+  if(!Number.isSafeInteger(delta)||delta===0)throw Error('Variation entière non nulle requise.');
+  if(w.stock+delta<0||w.stock+delta>1000000)
+   throw Error('Le stock ne peut pas être négatif ou dépasser un million.');
+  const response=await request('POST','/api/wines/'+w.id+'/stock-movements',{
+   delta,reason:form.get('reason'),note:form.get('note'),
+   expectedVersion:w.version,requestKey
+  });
+  await refresh();
+  return response.alreadyApplied?'Mouvement déjà enregistré.':'Mouvement enregistré avec succès.';
  });
 }
 
@@ -94,6 +143,7 @@ function wineEditor(w,refresh){
   choiceField(grid,'Couleur','color',colors,w?.color||'rouge');
   field(grid,'Prix de vente (€)','price',w?money(w.priceCents):'0.00','text',true);
   const stock=field(grid,'Stock (bouteilles)','stock',w?.stock??0,'number',true);stock.min='0';stock.step='1';
+  if(w){stock.disabled=true;stock.title='Utilisez « Mouvements » pour modifier et historiser le stock.';}
   for(const key of ['body','acidity','tannin','aromatic']){
    scaleField(grid,({body:'Corps',acidity:'Acidité',tannin:'Tanins',aromatic:'Expression aromatique'})[key],key,w?.[key]??3);
   }
@@ -107,7 +157,7 @@ function wineEditor(w,refresh){
   const payload={
    producer:value('producer'),cuvee:value('cuvee'),appellation:value('appellation'),
    vintage:value('vintage'),region:value('region'),grapes:value('grapes'),
-   color:value('color'),priceCents:cents(value('price')),stock:Number(value('stock')),
+   color:value('color'),priceCents:cents(value('price')),stock:w?w.stock:Number(value('stock')),
    body:Number(value('body')),acidity:Number(value('acidity')),
    tannin:Number(value('tannin')),aromatic:Number(value('aromatic')),
    tags:[...new Set(parsedTags)],byGlass:form.has('byGlass'),active:form.has('active')
