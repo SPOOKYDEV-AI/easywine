@@ -10,7 +10,7 @@ const randomName=()=>new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomUUI
 function syncFile(file){const fd=openSync(file,'r');try{fsyncSync(fd);}finally{closeSync(fd);}}
 function syncDirectory(path){
   try{const fd=openSync(path,'r');try{fsyncSync(fd);}finally{closeSync(fd);}}
-  catch(error){if(!['EINVAL','EPERM','EISDIR','ENOTSUP'].includes(error.code))throw error;}
+  catch(error){if(!['EINVAL','EPERM','EISDIR','ENOTSUP','EACCES'].includes(error.code))throw error;}
 }
 function reserve(file){
   const fd=openSync(file,'wx',0o600);
@@ -25,7 +25,7 @@ export function verifySnapshot(filename){
     const references=db.prepare('PRAGMA foreign_key_check').all();
     if(references.length)throw Error('SQLite foreign_key_check failed: '+references.length);
     const version=db.prepare('SELECT MAX(version) AS version FROM schema_version').get()?.version;
-    if(version!==1)throw Error('Unexpected database schema version: '+version);
+    if(version!==2)throw Error('Unexpected database schema version: '+version);
     return {version,restaurants:db.prepare('SELECT COUNT(*) AS n FROM restaurants').get().n};
   }finally{db.close();}
 }
