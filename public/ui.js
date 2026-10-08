@@ -59,7 +59,7 @@ export function notice(message,{error=false,type}={}){
  // otherwise be hidden behind its backdrop. Announce errors inside the modal.
  if(editor?.open){
   editor.append(n);
-  editor.addEventListener('close',dismissNotice,{once:true});
+  editor.addEventListener('close',()=>{if(n.parentElement===editor)dismissNotice();},{once:true});
  }else if(n.parentElement!==document.body){
   document.body.append(n);
  }
