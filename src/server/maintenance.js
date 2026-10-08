@@ -9,7 +9,11 @@ import {SCHEMA_VERSION} from './db.js';
 
 const ensureFolder=folder=>mkdirSync(folder,{recursive:true,mode:0o700});
 const randomName=()=>new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomUUID();
-function syncFile(file){const fd=openSync(file,'r');try{fsyncSync(fd);}finally{closeSync(fd);}}
+function syncFile(file){
+  // Windows FlushFileBuffers needs a write-capable handle; read-only handles return EPERM.
+  const fd=openSync(file,process.platform==='win32'?'r+':'r');
+  try{fsyncSync(fd);}finally{closeSync(fd);}
+}
 function syncDirectory(path){
   try{const fd=openSync(path,'r');try{fsyncSync(fd);}finally{closeSync(fd);}}
   catch(error){if(!['EINVAL','EPERM','EISDIR','ENOTSUP','EACCES'].includes(error.code))throw error;}
