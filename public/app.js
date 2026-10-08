@@ -1,7 +1,7 @@
 
 import {byId,request,notice,handle,empty} from './ui.js';
 import {renderService} from './service.js';
-import {renderWines,renderDishes,renderHistory,renderUsers,addUserButton} from './admin.js';
+import {renderWines,renderDishes,renderHistory,renderUsers,renderAccount,addUserButton} from './admin.js';
 
 let currentUser=null;
 let currentView='service';
@@ -21,7 +21,7 @@ function showShell(){
  byId('user-label').textContent=currentUser.name+' · '+currentUser.role;
  const isStaff=currentUser.role==='staff';
  for(const button of document.querySelectorAll('#menu [data-view]')){
-  button.hidden=isStaff&&button.dataset.view!=='service';
+  button.hidden=isStaff&&!['service','account'].includes(button.dataset.view);
   if(button.dataset.view==='users')button.hidden=currentUser.role==='staff';
  }
  byId('today').textContent=new Intl.DateTimeFormat('fr-FR',{dateStyle:'long'}).format(new Date());
@@ -35,7 +35,7 @@ async function load(){
 async function refresh(){await load();await view(currentView);}
 async function view(name){
  if(!currentUser)return;
- if(currentUser.role==='staff'&&name!=='service')name='service';
+ if(currentUser.role==='staff'&&!['service','account'].includes(name))name='service';
  currentView=name;
  for(const button of document.querySelectorAll('#menu [data-view]'))
   button.classList.toggle('active',button.dataset.view===name);
@@ -45,9 +45,9 @@ async function view(name){
  else if(name==='dishes')renderDishes(workspace,store,refresh);
  else if(name==='history')await renderHistory(workspace);
  else if(name==='users'){
-  await renderUsers(workspace);
+  await renderUsers(workspace,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
   if(currentUser.role==='owner')addUserButton(workspace,refresh);
- }
+ }else if(name==='account')renderAccount(workspace,currentUser,showLogin);
  workspace.focus({preventScroll:true});
 }
 byId('login-form').addEventListener('submit',handle(async event=>{
