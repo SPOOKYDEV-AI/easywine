@@ -257,3 +257,7 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .import-preview[aria-busy="true"]{display:flex;align-items:center;gap:.6rem;min-height:60px}
 .import-preview .wine-glass--mini{height:27px;width:20px}
 .preview-confirmation{color:#594d52;font-size:.83rem;font-weight:750;margin:.5rem 0}
+
+/* WCAG: text retains full contrast on every animation frame, including the first. */
+@keyframes lux-result-in{from{transform:translateY(5px)}to{transform:translateY(0)}}
+@keyframes lux-toast-in{from{transform:translateY(-5px)}to{transform:translateY(0)}}
