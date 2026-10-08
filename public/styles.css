@@ -159,3 +159,20 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  #notification{top:auto;bottom:calc(85px + env(safe-area-inset-bottom,0px));left:.75rem;right:.75rem;max-width:none}
  html{scroll-padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 }
+
+/* Explicit connectivity state, independent of unreliable navigator.onLine. */
+.network-status{
+ position:fixed;top:.65rem;left:50%;transform:translateX(-50%);
+ z-index:120;display:flex;align-items:center;gap:.85rem;
+ width:max-content;max-width:calc(100vw - 1.5rem);padding:.6rem .7rem .6rem 1rem;
+ border-radius:11px;border:1px solid #e2c1a4;background:#fff8e9;
+ box-shadow:0 9px 30px #2a1e1730;color:#653d24;font-size:.82rem;font-weight:600;
+}
+.network-status span{max-width:420px;line-height:1.35}
+.network-status .subtle-button{white-space:nowrap;min-height:44px;border-color:#d5bba4}
+@media(max-width:680px){
+ .network-status{top:.35rem;width:calc(100vw - .7rem);max-width:none;left:.35rem;
+  transform:none;flex-wrap:wrap;justify-content:center;padding:.55rem;font-size:.77rem}
+ .network-status span{flex:1 1 150px}
+ .network-status .subtle-button{flex:0 0 auto}
+}
