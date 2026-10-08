@@ -1,0 +1,188 @@
+
+import {randomUUID} from 'node:crypto';
+import {signIn,logout,publicUser,createUser,cookieFor,expiredCookie} from './auth.js';
+import {now,transaction,record,encode,wineFrom,dishFrom} from './db.js';
+import {recommend} from '../core/pairing.js';
+import {HttpError,fail,object,text,number,wineInput,dishInput,preferences} from './validation.js';
+
+const loginAttempts=new Map();
+function checkRate(ip){
+  const time=Date.now();
+  for(const [key,value] of loginAttempts)if(value.until<time)loginAttempts.delete(key);
+  const item=loginAttempts.get(ip);
+  if(item&&item.count>=10)fail('Trop de tentatives. Réessayez plus tard.',429);
+}
+function countFailed(ip){
+  const time=Date.now(),v=loginAttempts.get(ip);
+  loginAttempts.set(ip,{count:(v&&v.until>time?v.count:0)+1,until:time+15*60*1000});
+}
+function assertRole(user,...roles){
+  if(!roles.includes(user.role))fail('Accès réservé au responsable.',403);
+}
+function getWine(db,tenant,wineId){
+  const row=db.prepare('SELECT * FROM wines WHERE restaurant_id=? AND id=?').get(tenant,wineId);
+  if(!row)fail('Vin introuvable.',404);
+  return wineFrom(row);
+}
+function getDish(db,tenant,dishId){
+  const row=db.prepare('SELECT * FROM dishes WHERE restaurant_id=? AND id=?').get(tenant,dishId);
+  if(!row)fail('Plat introuvable.',404);
+  return dishFrom(row);
+}
+const wineColumns='(id,restaurant_id,producer,cuvee,appellation,vintage,region,grapes,color,tags,body,acidity,tannin,aromatic,price_cents,stock,by_glass,active,version,updated_at)';
+const wineValues=(key,tenant,w)=>[key,tenant,w.producer,w.cuvee,w.appellation,w.vintage,w.region,w.grapes,
+  w.color,encode(w.tags),w.body,w.acidity,w.tannin,w.aromatic,w.priceCents,w.stock,
+  Number(w.byGlass),Number(w.active),1,now()];
+function saveWine(db,tenant,wineId,w,oldVersion){
+  const values=wineValues(wineId,tenant,w);
+  if(oldVersion===null){
+    db.prepare('INSERT INTO wines '+wineColumns+' VALUES('+Array(20).fill('?').join(',')+')').run(...values);
+  }else{
+    const result=db.prepare('UPDATE wines SET producer=?,cuvee=?,appellation=?,vintage=?,region=?,grapes=?,color=?,tags=?,body=?,acidity=?,tannin=?,aromatic=?,price_cents=?,stock=?,by_glass=?,active=?,version=version+1,updated_at=? WHERE id=? AND restaurant_id=? AND version=?')
+      .run(w.producer,w.cuvee,w.appellation,w.vintage,w.region,w.grapes,w.color,encode(w.tags),
+        w.body,w.acidity,w.tannin,w.aromatic,w.priceCents,w.stock,Number(w.byGlass),Number(w.active),
+        now(),wineId,tenant,oldVersion);
+    if(result.changes!==1)fail('Ce vin a été modifié entre-temps. Rechargez la cave.',409);
+  }
+}
+function saveDish(db,tenant,dishId,d,oldVersion){
+  if(oldVersion===null){
+    db.prepare('INSERT INTO dishes(id,restaurant_id,name,description,intensity,richness,acidity,aromatic,spice,active,updated_at) VALUES(?,?,?,?,?,?,?,?,?,?,?)')
+      .run(dishId,tenant,d.name,d.description,d.intensity,d.richness,d.acidity,d.aromatic,d.spice,Number(d.active),now());
+  }else{
+    const result=db.prepare('UPDATE dishes SET name=?,description=?,intensity=?,richness=?,acidity=?,aromatic=?,spice=?,active=?,version=version+1,updated_at=? WHERE id=? AND restaurant_id=? AND version=?')
+      .run(d.name,d.description,d.intensity,d.richness,d.acidity,d.aromatic,d.spice,Number(d.active),
+        now(),dishId,tenant,oldVersion);
+    if(result.changes!==1)fail('Ce plat a été modifié. Rechargez la carte.',409);
+  }
+}
+export async function route({db,method,path,body,user,cookie,ip,secure=false}){
+  if(method==='POST'&&path==='/api/login'){
+    const o=object(body);
+    const slug=text(o.slug,'Établissement',80).toLowerCase();
+    const email=text(o.email,'E-mail',254).toLowerCase();
+    if(!/^[a-z0-9-]+$/.test(slug)||!/^\S+@\S+\.\S+$/.test(email)||typeof o.password!=='string'||o.password.length>1024)
+      fail('Identifiants invalides.');
+    checkRate(ip);
+    const session=signIn(db,{slug,email,password:o.password});
+    if(!session){countFailed(ip);fail('Identifiants incorrects.',401);}
+    loginAttempts.delete(ip);
+    return {body:{user:session.user},headers:{'Set-Cookie':cookieFor(session.token,secure)}};
+  }
+  if(!user)fail('Authentification nécessaire.',401);
+  const tenant=user.restaurant_id;
+
+  if(method==='GET'&&path==='/api/me')return {body:{user:publicUser(user)}};
+  if(method==='POST'&&path==='/api/logout'){
+    logout(db,cookie);
+    return {body:{ok:true},headers:{'Set-Cookie':expiredCookie(secure)}};
+  }
+  if(method==='GET'&&path==='/api/wines'){
+    return {body:{wines:db.prepare('SELECT * FROM wines WHERE restaurant_id=? ORDER BY producer,cuvee,vintage').all(tenant).map(wineFrom)}};
+  }
+  if(method==='GET'&&path==='/api/dishes'){
+    return {body:{dishes:db.prepare('SELECT * FROM dishes WHERE restaurant_id=? ORDER BY name').all(tenant).map(dishFrom)}};
+  }
+  if(method==='POST'&&path==='/api/wines'){
+    assertRole(user,'owner','manager');
+    const w=wineInput(body),key=randomUUID();
+    transaction(db,()=>{saveWine(db,tenant,key,w,null);record(db,user,'create','wine',key,undefined,w);});
+    return {status:201,body:{wine:getWine(db,tenant,key)}};
+  }
+  if(method==='POST'&&path==='/api/dishes'){
+    assertRole(user,'owner','manager');
+    const d=dishInput(body),key=randomUUID();
+    transaction(db,()=>{saveDish(db,tenant,key,d,null);record(db,user,'create','dish',key,undefined,d);});
+    return {status:201,body:{dish:getDish(db,tenant,key)}};
+  }
+  let match=path.match(/^\/api\/wines\/([0-9a-f-]{36})$/);
+  if(method==='PATCH'&&match){
+    assertRole(user,'owner','manager');
+    const prior=getWine(db,tenant,match[1]),o=object(body);
+    const version=number(o.expectedVersion,'Version',1,2147483647);
+    const updated=wineInput(o,prior);
+    transaction(db,()=>{saveWine(db,tenant,prior.id,updated,version);
+      record(db,user,'update','wine',prior.id,prior,updated);});
+    return {body:{wine:getWine(db,tenant,prior.id)}};
+  }
+  match=path.match(/^\/api\/dishes\/([0-9a-f-]{36})$/);
+  if(method==='PATCH'&&match){
+    assertRole(user,'owner','manager');
+    const prior=getDish(db,tenant,match[1]),o=object(body);
+    const version=number(o.expectedVersion,'Version',1,2147483647);
+    const updated=dishInput(o,prior);
+    transaction(db,()=>{saveDish(db,tenant,prior.id,updated,version);
+      record(db,user,'update','dish',prior.id,prior,updated);});
+    return {body:{dish:getDish(db,tenant,prior.id)}};
+  }
+  match=path.match(/^\/api\/dishes\/([0-9a-f-]{36})\/classic$/);
+  if(method==='PUT'&&match){
+    assertRole(user,'owner','manager');
+    const prior=getDish(db,tenant,match[1]),o=object(body);
+    const version=number(o.expectedVersion,'Version',1,2147483647);
+    const wineId=o.wineId===null?null:text(o.wineId,'Vin',80);
+    if(wineId)getWine(db,tenant,wineId);
+    transaction(db,()=>{
+      const result=db.prepare('UPDATE dishes SET classic_wine_id=?,version=version+1,updated_at=? WHERE restaurant_id=? AND id=? AND version=?')
+        .run(wineId,now(),tenant,prior.id,version);
+      if(result.changes!==1)fail('Accord modifié entre-temps.',409);
+      record(db,user,'set-classic','dish',prior.id,{wineId:prior.classicWineId},{wineId});
+    });
+    return {body:{dish:getDish(db,tenant,prior.id)}};
+  }
+  match=path.match(/^\/api\/dishes\/([0-9a-f-]{36})\/blocks$/);
+  if(method==='PUT'&&match){
+    assertRole(user,'owner','manager');
+    const prior=getDish(db,tenant,match[1]),o=object(body);
+    if(!Array.isArray(o.wineIds)||o.wineIds.length>1000)fail('Liste invalide.');
+    const ids=[...new Set(o.wineIds)];
+    for(const wid of ids)getWine(db,tenant,text(wid,'Vin',80));
+    transaction(db,()=>{
+      const before=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?').all(tenant,prior.id).map(x=>x.wine_id);
+      db.prepare('DELETE FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?').run(tenant,prior.id);
+      const add=db.prepare('INSERT INTO blocked_pairings(restaurant_id,dish_id,wine_id) VALUES(?,?,?)');
+      for(const wid of ids)add.run(tenant,prior.id,wid);
+      record(db,user,'set-blocks','dish',prior.id,before,ids);
+    });
+    return {body:{wineIds:ids}};
+  }
+  if(method==='POST'&&path==='/api/recommend'){
+    const p=preferences(body),dish=getDish(db,tenant,p.dishId);
+    if(!dish.active)fail('Ce plat est désactivé.',409);
+    const wines=db.prepare('SELECT * FROM wines WHERE restaurant_id=?').all(tenant).map(wineFrom);
+    const blocked=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?').all(tenant,dish.id).map(r=>r.wine_id);
+    const classic=dish.classicWineId?wines.find(w=>w.id===dish.classicWineId):null;
+    const results=recommend({dish,wines,blockedWineIds:blocked,styles:p.styles,color:p.color,
+      minPriceCents:p.minPriceCents,maxPriceCents:p.maxPriceCents,
+      diversifyPrices:p.minPriceCents===null&&p.maxPriceCents===null});
+    return {body:{dish,classic:classic?{wine:classic,available:classic.active&&classic.stock>0}:null,
+      recommendations:results,explanation:'Compatibilité indicative calculée sur les profils renseignés par le restaurant, sans recours au prix comme critère de qualité.'}};
+  }
+  if(method==='GET'&&path==='/api/audit'){
+    assertRole(user,'owner','manager');
+    const entries=db.prepare('SELECT a.id,a.action,a.object_type,a.object_id,a.before_json,a.after_json,a.created_at,u.name AS actor FROM audit a JOIN users u ON u.id=a.actor_id WHERE a.restaurant_id=? ORDER BY a.created_at DESC LIMIT 100').all(tenant);
+    return {body:{events:entries.map(e=>({id:e.id,action:e.action,objectType:e.object_type,
+      objectId:e.object_id,actor:e.actor,at:e.created_at,before:e.before_json?JSON.parse(e.before_json):null,
+      after:e.after_json?JSON.parse(e.after_json):null}))}};
+  }
+  if(method==='POST'&&path==='/api/users'){
+    assertRole(user,'owner');
+    const o=object(body),name=text(o.name,'Nom',120),email=text(o.email,'E-mail',254).toLowerCase();
+    if(!/^\S+@\S+\.\S+$/.test(email))fail('E-mail invalide.');
+    const role=o.role;
+    if(!['manager','staff'].includes(role))fail('Rôle invalide.');
+    if(typeof o.password!=='string')fail('Mot de passe requis.');
+    let userId;
+    transaction(db,()=>{
+      userId=createUser(db,{restaurantId:tenant,name,email,role,password:o.password});
+      record(db,user,'create','user',userId,undefined,{name,email,role});
+    });
+    return {status:201,body:{id:userId,name,email,role}};
+  }
+  if(method==='GET'&&path==='/api/users'){
+    assertRole(user,'owner','manager');
+    const users=db.prepare('SELECT id,name,email,role,active FROM users WHERE restaurant_id=? ORDER BY name').all(tenant);
+    return {body:{users:users.map(u=>({...u,active:!!u.active}))}};
+  }
+  throw new HttpError(404,'Ressource inconnue.');
+}
