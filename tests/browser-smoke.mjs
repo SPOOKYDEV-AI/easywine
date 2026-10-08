@@ -60,16 +60,18 @@ try{
  await page.locator('#menu [data-view=service]').click();
  await page.locator('.chip').filter({hasText:'Frais'}).click();
  await page.getByRole('button',{name:/Trouver les meilleurs accords/}).click();
+
  await page.locator('.result-card:not(.classic)').waitFor();
  assert.ok((await page.locator('#workspace').innerText()).includes('Je vous propose Domaine du Test'));
+ mkdirSync('test-artifacts',{recursive:true});
+ await page.screenshot({path:'test-artifacts/desktop-result.png',fullPage:true});
  await page.getByRole('button',{name:'Le client a choisi ce vin'}).click();
  await page.getByText(/Choix enregistré/).waitFor();
  await page.locator('#menu [data-view=stats]').click();
  await page.getByText('Par référence').waitFor();
  assert.deepEqual(await page.locator('.stat-tile strong').allTextContents(),['1','1','100 %']);
+ await page.screenshot({path:'test-artifacts/desktop-stats.png',fullPage:true});
  await page.locator('#menu [data-view=service]').click();
- mkdirSync('test-artifacts',{recursive:true});
- await page.screenshot({path:'test-artifacts/desktop.png',fullPage:true});
  await page.setViewportSize({width:390,height:844});
  await page.reload({waitUntil:'networkidle'});
  await page.locator('#shell:not([hidden])').waitFor();
