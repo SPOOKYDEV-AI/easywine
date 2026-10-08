@@ -31,7 +31,7 @@ function cents(value){
 function scaleField(grid,title,name,v){choiceField(grid,title,name,scale,v);}
 export function renderWines(container,{wines},refresh){
  container.replaceChildren(heading('Ma cave','Toutes les bouteilles de votre établissement.',
-   e('button',{type:'button',class:'button primary',text:'+ Ajouter un vin',onClick:()=>wineEditor(null,refresh)})));
+   e('div',{class:'item-actions'},e('button',{type:'button',class:'button secondary',text:'Importer CSV',onClick:()=>importEditor(refresh)}),e('button',{type:'button',class:'button primary',text:'+ Ajouter un vin',onClick:()=>wineEditor(null,refresh)}))));
  const toolbar=e('div',{class:'toolbar'});
  const search=e('input',{type:'search',placeholder:'Rechercher une cuvée, un producteur…','aria-label':'Rechercher un vin'});
  toolbar.append(search);container.append(toolbar);
@@ -53,6 +53,35 @@ export function renderWines(container,{wines},refresh){
  }
  search.addEventListener('input',draw);draw();
 }
+
+function importEditor(refresh){
+ let validatedCsv=null;
+ edit('Importer une cave CSV',fields=>{
+  fields.append(e('p',{class:'muted',text:'Champs requis : producer, cuvee, color, body, acidity, tannin, aromatic, price_eur, stock. Séparateur point-virgule ou virgule.'}));
+  const file=e('input',{type:'file',accept:'.csv,text/csv'});
+  const preview=e('div',{class:'hint',text:'Sélectionnez votre CSV pour vérifier les références.'});
+  fields.append(e('label',{},'Fichier CSV',file),preview);
+  file.addEventListener('change',handle(async()=>{
+   validatedCsv=null;
+   const selected=file.files[0];
+   if(!selected)return;
+   if(selected.size>130000)throw Error('CSV limité à 130 Ko.');
+   const source=await selected.text();
+   const summary=await request('POST','/api/import/wines/preview',{csv:source});
+   preview.replaceChildren(e('p',{text:summary.valid+' références valides sur '+summary.total+'.'}));
+   for(const item of summary.sample)preview.append(e('p',{text:item.producer+' · '+item.cuvee+' · '+euro(item.priceCents)}));
+   for(const issue of summary.errors.slice(0,10))preview.append(e('p',{class:'danger',text:'Ligne '+issue.line+' : '+issue.error}));
+   if(summary.errors.length>10)preview.append(e('p',{text:(summary.errors.length-10)+' erreurs supplémentaires.'}));
+   if(summary.canImport)validatedCsv=source;
+  }));
+ },async()=>{
+  if(!validatedCsv)throw Error('Vérifiez le CSV avant import.');
+  const result=await request('POST','/api/import/wines/commit',{csv:validatedCsv});
+  notice(result.imported+' références importées.');
+  await refresh();
+ });
+}
+
 function wineEditor(w,refresh){
  edit(w?'Modifier le vin':'Ajouter un vin',fields=>{
   const grid=box(fields);
