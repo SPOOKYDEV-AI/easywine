@@ -86,6 +86,12 @@ Configurer le chemin de clé dans `EASYWINE_BACKUP_KEY_FILE` (ou une clé hexad�
 
     npm run backup -- backup-encrypted --directory /volume/backup-easywine
 
+Pour conserver automatiquement une **seconde copie authentifiée**, ajouter un répertoire secondaire accessible au compte technique :
+
+    npm run backup -- backup-encrypted --directory /volume/backup-easywine --replica-dir /montage/seconde-destination/easywine
+
+La copie est écrite dans un fichier temporaire privé, vérifiée par empreinte SHA-256 complète puis publiée sans écraser un fichier existant. Une erreur de copie rend la commande non réussie et préserve la sauvegarde principale. **Le second répertoire n'est pas automatiquement « hors site »** : il doit être monté sur un véritable stockage distinct avec droits minimum, disponibilité surveillée, rétention explicite et essais de restauration. Un simple autre dossier du même disque ne protège pas d'une panne du support. Aucune tâche planifiée ou réplication cloud n'est automatiquement installée sur votre machine.
+
 Restaurer uniquement vers un nouveau fichier, après récupération de la clé :
 
     npm run backup -- restore-encrypted --from /volume/backup-easywine/easywine-ARCHIVE.ewb --to /volume/recovery/new.sqlite
