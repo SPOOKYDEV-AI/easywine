@@ -53,12 +53,13 @@ try{
  await page.locator('.mfa-setup input[name=otp]').fill(code);
  await page.getByRole('button',{name:'Vérifier et activer'}).click();
  await page.locator('.recovery-codes').waitFor();
- assert.equal((await page.locator('.recovery-codes').innerText()).trim().split('\n').length,8);
+ const issued=(await page.locator('.recovery-codes').innerText()).trim().split('\n');
+ assert.equal(issued.length,8);
  await page.getByRole('button',{name:/J’ai sauvegardé les codes/}).click();
  await page.locator('#login:not([hidden])').waitFor();
  await login();
  await page.locator('#mfa-form:not([hidden])').waitFor();
- await page.locator('#mfa-form input[name=code]').fill(code);
+ await page.locator('#mfa-form input[name=code]').fill(issued[0]);
  await page.locator('#mfa-form button[type=submit]').click();
  await page.locator('#shell:not([hidden])').waitFor();
  await page.locator('#menu [data-view=account]').click();
