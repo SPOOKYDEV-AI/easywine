@@ -41,12 +41,25 @@ try{
  await page.locator('#editor button[type=submit]').click();
  await page.getByText('Cuvée accessible').waitFor();
  await scan('cave-with-wine-desktop');
+ await page.getByRole('button',{name:'Mouvements'}).click();
+ await page.locator('#editor[open]').waitFor();
+ await scan('stock-dialog-desktop');
+ await page.locator('#cancel-editor').click();
  await page.locator('#menu [data-view=dishes]').click();
  await page.getByRole('button',{name:/Ajouter un plat/}).click();
  await page.locator('#editor input[name=name]').fill('Plat de dégustation');
  await page.locator('#editor button[type=submit]').click();
  await page.getByText('Plat de dégustation').waitFor();
  await scan('card-with-dish-desktop');
+ await page.locator('#menu [data-view=users]').click();
+ await page.locator('#workspace h1').filter({hasText:'Mon équipe'}).waitFor();
+ await scan('team-desktop');
+ await page.locator('#menu [data-view=history]').click();
+ await page.locator('#workspace h1').filter({hasText:'Historique'}).waitFor();
+ await scan('audit-history-desktop');
+ await page.locator('#menu [data-view=stats]').click();
+ await page.getByText('Statistiques du service').waitFor();
+ await scan('statistics-desktop');
  await page.locator('#menu [data-view=service]').click();
  await page.getByRole('button',{name:/Trouver les meilleurs accords/}).click();
  await page.locator('.result-card:not(.classic)').waitFor();
@@ -68,7 +81,7 @@ try{
   screen:x.screen,id:x.id,impact:x.impact,selectors:x.nodes.map(y=>y.target)
  }))));
  console.log('A11Y_AUDIT_COMPLETE scans='+results.length+' violations='+violations.length);
- assert.equal(results.length,10);
+ assert.equal(results.length,14);
  assert.equal(violations.length,0,'Axe-core found WCAG A/AA regressions: '+JSON.stringify(violations));
 }finally{
  if(browser)await browser.close();
