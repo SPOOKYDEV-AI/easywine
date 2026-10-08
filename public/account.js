@@ -87,5 +87,7 @@ export async function renderAccount(container,user,onLogout){
  layout.append(password,mfa);container.append(layout);
  const status=await request('GET','/api/me/mfa');
  if(status.enabled)activeMfa(mfa,status,onLogout);
- else setupMfa(mfa,onLogout);
+ else if(status.available)setupMfa(mfa,onLogout);
+ else mfa.append(e('h2',{text:'Second facteur non configuré'}),
+   e('p',{class:'muted',text:'Un administrateur technique doit installer une clé MFA privée sur le serveur avant que vous puissiez activer cette protection.'}));
 }
