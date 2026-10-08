@@ -56,7 +56,7 @@ export function renderWines(container,{wines},refresh){
 function wineEditor(w,refresh){
  edit(w?'Modifier le vin':'Ajouter un vin',fields=>{
   const grid=box(fields);
-  field(grid,'Producteur','producer',w?.producer,true===false?'number':'text',true);
+  field(grid,'Producteur','producer',w?.producer,'text',true);
   field(grid,'Cuvée','cuvee',w?.cuvee,'text',true);
   field(grid,'Appellation','appellation',w?.appellation);
   field(grid,'Millésime','vintage',w?.vintage);
@@ -133,11 +133,6 @@ function classicEditor(d,wines,refresh){
   const options=[['','Aucun accord défini'],...wines.map(w=>[w.id,[w.producer,w.cuvee,w.vintage].filter(Boolean).join(' ')])];
   fields.append(e('p',{class:'muted',text:'Cet accord restera mémorisé même lorsque le vin est épuisé. Chaque modification est historisée.'}));
   fields.append(e('label',{},'Vin de référence',(()=>{
-   const s=choiceField(document.createDocumentFragment(),'','',[],null);
-   return s;
-  })()));
-  // Replace the temporary field with an explicitly named selector.
-  fields.lastChild.replaceWith(e('label',{},'Vin de référence',(()=>{
    const selection=e('select',{name:'wineId'});
    for(const [id,title] of options)selection.append(e('option',{value:id,text:title}));
    selection.value=d.classicWineId||'';return selection;
