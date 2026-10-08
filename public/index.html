@@ -1,0 +1,67 @@
+
+<!doctype html>
+<html lang="fr">
+<head>
+ <meta charset="utf-8">
+ <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+ <meta name="theme-color" content="#682c3c">
+ <meta name="description" content="EasyWine — l'expertise de votre cave au service de vos équipes.">
+ <title>EasyWine — Accords mets & vins</title>
+ <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+ <link rel="stylesheet" href="/styles.css">
+ <script type="module" src="/app.js"></script>
+</head>
+<body>
+ <div id="notification" role="status" aria-live="polite" hidden></div>
+ <div id="login" class="login-layout">
+  <div class="login-intro">
+   <span class="wordmark"><span class="wine-mark">◈</span> easywine<span class="wordmark-dot">.</span></span>
+   <p class="eyebrow">L'ACCORD JUSTE, AU BON MOMENT</p>
+   <h1>Le savoir-faire de votre maison, à portée de main.</h1>
+   <p class="muted">Votre carte, votre cave, vos accords. Un outil pensé pour les équipes de salle, sans complexité ni dépendance à l'IA.</p>
+   <div class="intro-ornament" aria-hidden="true">✦ &nbsp; L'art de l'accord &nbsp; ✦</div>
+  </div>
+  <div class="login-panel">
+   <form id="login-form" class="form-card">
+    <p class="eyebrow">ESPACE PROFESSIONNEL</p>
+    <h2>Bienvenue.</h2>
+    <p class="muted">Connectez-vous à votre établissement.</p>
+    <label>Identifiant de l'établissement<input name="slug" required autocomplete="organization" placeholder="ex. maison-lumiere" pattern="[a-z0-9-]+"></label>
+    <label>Adresse e-mail<input name="email" required type="email" autocomplete="username" placeholder="vous@restaurant.fr"></label>
+    <label>Mot de passe<input name="password" required type="password" autocomplete="current-password"></label>
+    <button class="button primary" type="submit">Accéder à EasyWine <span aria-hidden="true">→</span></button>
+    <p class="form-hint">Accès réservé aux équipes autorisées par l'établissement.</p>
+   </form>
+  </div>
+ </div>
+ <div id="shell" class="shell" hidden>
+  <aside class="sidebar">
+   <div class="brand"><span class="wine-mark">◈</span><span>easywine<span class="wordmark-dot">.</span></span></div>
+   <p class="aside-overline">VOTRE MAISON</p>
+   <div class="restaurant-name" id="restaurant-name"></div>
+   <nav id="menu" aria-label="Navigation principale">
+    <button class="nav-link active" data-view="service">✧ <span>Conseiller un vin</span></button>
+    <button class="nav-link" data-view="wines">▦ <span>Ma cave</span></button>
+    <button class="nav-link" data-view="dishes">▤ <span>Ma carte</span></button>
+    <button class="nav-link" data-view="history">◷ <span>Historique</span></button>
+    <button class="nav-link" data-view="users">♙ <span>Mon équipe</span></button>
+   </nav>
+   <div class="aside-bottom">
+    <div id="user-label"></div>
+    <button id="logout" class="logout-button">Se déconnecter ↗</button>
+   </div>
+  </aside>
+  <div class="main-area">
+   <header class="topbar"><span class="mobile-brand">◈ easywine<span class="wordmark-dot">.</span></span><span class="topbar-tag">CONSEIL & ACCORDS</span><span id="today"></span></header>
+   <main id="workspace" tabindex="-1"></main>
+  </div>
+ </div>
+ <dialog id="editor" aria-label="Formulaire d'édition">
+  <form id="editor-form" class="editor-form">
+   <div class="dialog-top"><h2 id="editor-title"></h2><button type="button" id="close-editor" class="icon-button" aria-label="Fermer">×</button></div>
+   <div id="editor-fields"></div>
+   <div class="dialog-actions"><button type="button" class="button secondary" id="cancel-editor">Annuler</button><button type="submit" class="button primary">Enregistrer</button></div>
+  </form>
+ </dialog>
+</body>
+</html>
