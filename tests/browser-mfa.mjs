@@ -68,7 +68,7 @@ try{
  await page.setViewportSize({width:390,height:844});
  await page.reload({waitUntil:'networkidle'});
  await page.locator('#shell:not([hidden])').waitFor();
- await page.locator('#menu [data-view=account]').click();
+ await page.locator('#mobile-nav [data-mobile-view=account]').click();
  await page.getByText('Second facteur actif').waitFor();
  const horizontalOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
  assert.equal(horizontalOverflow,false,'The account security view must not overflow mobile width');
