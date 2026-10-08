@@ -25,3 +25,28 @@ jobs:
           for file in $(find src public -name '*.js' -type f); do node --check "$file"; done
       - name: Test (no dependencies)
         run: npm test
+
+  browser:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install test-only browser driver
+        run: npm install --no-save --no-package-lock playwright@1.55.0
+      - name: Verify Chrome is available
+        run: google-chrome --version
+      - name: Exercise real browser journeys
+        run: node tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: easywine-browser-screenshots
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
