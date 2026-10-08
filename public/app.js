@@ -2,7 +2,8 @@
 import {byId,request,notice,handle,empty} from './ui.js';
 import {renderService} from './service.js';
 import {renderStats} from './stats.js';
-import {renderWines,renderDishes,renderHistory,renderUsers,renderAccount,addUserButton} from './admin.js';
+import {renderWines,renderDishes,renderHistory,renderUsers,addUserButton} from './admin.js';
+import {renderAccount} from './account.js';
 
 let currentUser=null;
 let pendingMfaChallenge=null;
