@@ -1,5 +1,5 @@
 
-import {element as e,heading,notice,request,handle} from './ui.js';
+import {element as e,heading,notice,request,handle,withBusy} from './ui.js';
 
 function passwordPanel(onLogout){
  const panel=e('section',{class:'panel'});
@@ -18,8 +18,10 @@ function passwordPanel(onLogout){
  form.addEventListener('submit',handle(async event=>{
   event.preventDefault();
   if(next.value!==confirm.value)throw Error('Les deux mots de passe ne correspondent pas.');
-  await request('POST','/api/me/password',{currentPassword:current.value,newPassword:next.value});
-  onLogout();notice('Mot de passe modifié. Connectez-vous à nouveau.');
+  await withBusy(form.querySelector('button[type=submit]'),async()=>{
+   await request('POST','/api/me/password',{currentPassword:current.value,newPassword:next.value});
+   onLogout();notice('Mot de passe modifié. Connectez-vous à nouveau.');
+  },'Sécurisation du compte…');
  }));
  panel.append(form);
  return panel;
@@ -34,7 +36,9 @@ function setupMfa(panel,onLogout){
  panel.append(form);
  form.addEventListener('submit',handle(async event=>{
   event.preventDefault();
-  const setup=await request('POST','/api/me/mfa/setup',{password:password.value});
+  const setup=await withBusy(form.querySelector('button[type=submit]'),
+   ()=>request('POST','/api/me/mfa/setup',{password:password.value}),
+   'Préparation du second facteur…');
   password.value='';
   form.hidden=true;
   const block=e('div',{class:'mfa-setup'},
@@ -50,7 +54,10 @@ function setupMfa(panel,onLogout){
   block.append(verify);panel.append(block);
   verify.addEventListener('submit',handle(async evt=>{
    evt.preventDefault();
-   const result=await request('POST','/api/me/mfa/confirm',{code:code.value.trim()});
+   const result=await withBusy(verify.querySelector('button[type=submit]'),
+    ()=>request('POST','/api/me/mfa/confirm',{code:code.value.trim()}),
+    'Validation du code…');
+   notice('Second facteur activé. Conservez vos codes de secours.');
    block.replaceChildren(
     e('h3',{text:'Conservez vos codes de secours'}),
     e('p',{class:'muted',text:'Ils sont affichés une seule fois et chacun est utilisable une seule fois. Ne les stockez pas avec votre mot de passe.'}),
@@ -75,8 +82,10 @@ function activeMfa(panel,state,onLogout){
  panel.append(form);
  form.addEventListener('submit',handle(async event=>{
   event.preventDefault();
-  await request('POST','/api/me/mfa/disable',{password:password.value,code:code.value.trim()});
-  onLogout();notice('Second facteur désactivé. Connectez-vous à nouveau.');
+  await withBusy(form.querySelector('button[type=submit]'),async()=>{
+   await request('POST','/api/me/mfa/disable',{password:password.value,code:code.value.trim()});
+   onLogout();notice('Second facteur désactivé. Connectez-vous à nouveau.');
+  },'Vérification de sécurité…');
  }));
 }
 export async function renderAccount(container,user,onLogout){
