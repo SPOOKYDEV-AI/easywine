@@ -6,6 +6,7 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {DatabaseSync} from 'node:sqlite';
 import {openDatabase} from '../src/server/db.js';
+import {restoreToNewPath} from '../src/server/maintenance.js';
 
 test('migration v2->v3 creates an explicit stock baseline, not fictional sale history',t=>{
  const folder=mkdtempSync(join(tmpdir(),'ew-stock-migrate-'));
@@ -25,6 +26,13 @@ test('migration v2->v3 creates an explicit stock baseline, not fictional sale hi
   ' VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
  ).run(id,tenant,'Producteur','Millésime','rouge',3,3,2,4,8000,17,'2026-09-01T00:00:00.000Z');
  old.close();
+ const historical=join(folder,'recovered-v2.sqlite');
+ assert.equal(restoreToNewPath(file,historical).version,2);
+ const openedRecovered=openDatabase(historical);
+ try{
+  assert.equal(openedRecovered.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
+  assert.equal(openedRecovered.prepare('SELECT COUNT(*) AS n FROM stock_movements').get().n,1);
+ }finally{openedRecovered.close();}
  const db=openDatabase(file);
  try{
   assert.equal(db.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
