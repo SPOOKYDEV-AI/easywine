@@ -26,7 +26,7 @@ function pills(group,items,selected,onSelect){
     }}});
   button.dataset.value=value;wrap.append(button);
  }
- return e('div',{class:'filter-group'},e('p',{class:'filter-name',text:group}),wrap);
+ return e('div',{class:'filter-group'},group?e('p',{class:'filter-name',text:group}):null,wrap);
 }
 function card(entry,classic=false,sessionId=null){
  const w=entry.wine;
@@ -78,11 +78,19 @@ export function renderService(container,{dishes}){
  left.append(e('h3',{class:'step-heading'},e('span',{class:'step',text:'01'}),'Choisir le plat'));
  const dishSelect=select('dish',active.map(d=>[d.id,d.name]));
  dishSelect.setAttribute('aria-label','Plat du client');left.append(dishSelect);
- left.append(pills('02 · Les envies du client',styles,x=>chosenStyles.has(x),x=>{
-   if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);
- }));
- left.append(pills('03 · Couleur / type de vin',colors,x=>x===chosenColor,x=>{chosenColor=x;}));
- left.append(pills('04 · Budget éventuel',budgets,x=>x===chosenBudget,x=>{chosenBudget=x;}));
+
+ left.append(pills('02 · Les envies du client',styles.slice(0,6),
+   x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}));
+ const extraStyles=e('details',{class:'optional-filters'},
+  e('summary',{text:'Plus de styles'}),
+  pills('',styles.slice(6),
+    x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}));
+ left.append(extraStyles);
+ const optional=e('details',{class:'optional-filters'},
+  e('summary',{text:'Couleur et budget · facultatifs'}),
+  pills('Couleur / type de vin',colors,x=>x===chosenColor,x=>{chosenColor=x;}),
+  pills('Budget éventuel',budgets,x=>x===chosenBudget,x=>{chosenBudget=x;}));
+ left.append(optional);
  const submit=e('button',{type:'button',class:'button primary service-submit',text:'Trouver les meilleurs accords →'});
  left.append(submit);
  right.append(e('div',{class:'results-placeholder'},e('div',{class:'placeholder-icon',text:'✧'}),
@@ -107,6 +115,7 @@ export function renderService(container,{dishes}){
    }
    section.append(e('p',{class:'hint',text:data.explanation}));
    right.replaceChildren(section);
+   if(window.matchMedia('(max-width:1020px)').matches)right.scrollIntoView({behavior:'smooth',block:'start'});
   }finally{submit.disabled=false;submit.textContent='Trouver les meilleurs accords →';}
  }));
 }
