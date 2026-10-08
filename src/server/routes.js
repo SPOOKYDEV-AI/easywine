@@ -141,7 +141,6 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
         .run(Number(o.active),tenant,target.id);
       if(!o.active){
         db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
-      db.prepare('DELETE FROM mfa_challenges WHERE user_id=?').run(target.id);
         db.prepare('DELETE FROM mfa_challenges WHERE user_id=?').run(target.id);
       }
       record(db,user,o.active?'activate':'deactivate','user',target.id,
@@ -161,6 +160,7 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
       db.prepare('UPDATE users SET salt=?,password_hash=? WHERE restaurant_id=? AND id=?')
         .run(credentials.salt,credentials.passwordHash,tenant,target.id);
       db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+      db.prepare('DELETE FROM mfa_challenges WHERE user_id=?').run(target.id);
       record(db,user,'password-reset','user',target.id,undefined,{sessionsRevoked:true});
     });
     return {body:{ok:true}};
