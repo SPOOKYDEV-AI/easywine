@@ -10,6 +10,7 @@ import {openDatabase} from '../src/server/db.js';
 import {bootstrap} from '../src/server/bootstrap.js';
 import {createApp} from '../src/server/index.js';
 import {pruneServiceHistory} from '../src/server/service-history.js';
+import {restoreToNewPath} from '../src/server/maintenance.js';
 
 const password='Session-Hardening-2026!';
 test('migrate an existing v1 SQLite database without losing restaurant records',t=>{
@@ -21,6 +22,12 @@ test('migrate an existing v1 SQLite database without losing restaurant records',
  v1.prepare('INSERT INTO restaurants VALUES(?,?,?,?)')
    .run('existing-restaurant','legacy','Restaurant historique',new Date().toISOString());
  v1.close();
+ const historical=join(folder,'recovered-v1.sqlite');
+ assert.equal(restoreToNewPath(file,historical).version,1);
+ const restored=openDatabase(historical);
+ assert.equal(restored.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
+ assert.equal(restored.prepare('SELECT name FROM restaurants WHERE slug=?').get('legacy').name,'Restaurant historique');
+ restored.close();
  const upgraded=openDatabase(file);
  assert.equal(upgraded.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
  assert.equal(upgraded.prepare('SELECT name FROM restaurants WHERE slug=?').get('legacy').name,'Restaurant historique');
