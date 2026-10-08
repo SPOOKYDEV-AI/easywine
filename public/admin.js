@@ -11,8 +11,8 @@ function edit(title,build,save){
  form.onsubmit=handle(async event=>{
   event.preventDefault();
   const data=new FormData(form);
-  await save(data);
-  dialog.close();notice('Modifications enregistrées.');
+  const confirmation=await save(data);
+  dialog.close();notice(typeof confirmation==='string'?confirmation:'Modifications enregistrées.');
  });
  dialog.showModal();
  byId('close-editor').onclick=()=>dialog.close();
@@ -78,8 +78,8 @@ function importEditor(refresh){
  },async()=>{
   if(!validatedCsv)throw Error('Vérifiez le CSV avant import.');
   const result=await request('POST','/api/import/wines/commit',{csv:validatedCsv});
-  notice(result.imported+' références importées.');
   await refresh();
+  return result.imported+' références importées.';
  });
 }
 
@@ -126,8 +126,8 @@ async function stockEditor(w,refresh){
    delta,reason:form.get('reason'),note:form.get('note'),
    expectedVersion:w.version,requestKey
   });
-  notice(response.alreadyApplied?'Mouvement déjà enregistré.':'Mouvement enregistré avec succès.');
   await refresh();
+  return response.alreadyApplied?'Mouvement déjà enregistré.':'Mouvement enregistré avec succès.';
  });
 }
 
