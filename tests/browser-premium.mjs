@@ -104,6 +104,34 @@ try{
  await page.getByText(/suggestion\(s\) vérifiée\(s\) dans votre cave/).waitFor();
  await page.unroute('**/api/recommend');
 
+ // Changing a filter invalidates previously displayed advice immediately.
+ await page.getByRole('button',{name:'Léger',exact:true}).click();
+ await page.getByText('Vos critères ont changé.').waitFor();
+ assert.equal(await page.locator('.result-confirmation').count(),0);
+
+ // A response that was computed before a filter change must never reappear
+ // beneath the user's newer preferences, even when the HTTP request succeeds.
+ let releaseRecommendation,interceptRecommendation;
+ const heldResponse=new Promise(resolve=>{releaseRecommendation=resolve;});
+ const intercepted=new Promise(resolve=>{interceptRecommendation=resolve;});
+ await page.route('**/api/recommend',async route=>{
+  interceptRecommendation();
+  await heldResponse;
+  await route.continue();
+ });
+ await page.locator('.service-submit').click();
+ await intercepted;
+ await page.locator('.view-loading .wine-glass--inline').waitFor();
+ await page.getByRole('button',{name:'Léger',exact:true}).click();
+ await page.getByText('Vos critères ont changé.').waitFor();
+ releaseRecommendation();
+ await page.locator('.service-submit:not(.is-busy)').waitFor();
+ assert.equal(await page.locator('.result-confirmation').count(),0);
+ assert.equal(await page.getByText('Vos critères ont changé.').count(),1);
+ await page.unroute('**/api/recommend');
+ await page.locator('.service-submit').click();
+ await page.locator('.result-card:not(.classic)').waitFor();
+
  await page.emulateMedia({reducedMotion:'reduce'});
  await page.locator('#menu [data-view=stats]').click();
  await page.route('**/api/audit',route=>route.continue());
