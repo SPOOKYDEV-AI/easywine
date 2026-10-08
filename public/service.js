@@ -1,5 +1,5 @@
 
-import {element as e,heading,select,request,euro,empty,handle,loadingState,errorState,withBusy} from './ui.js';
+import {element as e,heading,select,request,euro,empty,handle,loadingState,errorState,withBusy,notice,wineGlass} from './ui.js';
 
 const styles=[
  ['leger','Léger'],['frais','Frais'],['mineral','Minéral'],['aromatique','Aromatique'],
@@ -59,13 +59,26 @@ function card(entry,classic=false,sessionId=null){
   const choose=e('button',{type:'button',class:'button secondary choice-button',text:'Le client a choisi ce vin'});
   const feedback=e('span',{class:'hint'});
   choose.addEventListener('click',handle(async()=>{
+   if(choose.disabled)return;
    choose.disabled=true;
+   choose.setAttribute('aria-busy','true');
+   choose.replaceChildren(wineGlass('mini'),' Enregistrement…');
    try{
     await request('POST','/api/service/choice',{sessionId,wineId:w.id});
     const parent=article.parentElement;
-    if(parent)for(const button of parent.querySelectorAll('.choice-button'))button.disabled=true;
-    feedback.textContent='✓ Choix enregistré (stock à ajuster dans « Ma cave »).';
-   }catch(error){choose.disabled=false;throw error;}
+    if(parent)for(const button of parent.querySelectorAll('.choice-button')){
+     button.disabled=true;
+     button.removeAttribute('aria-busy');
+    }
+    choose.replaceChildren(document.createTextNode('✓ Choix enregistré'));
+    feedback.textContent='Stock inchangé : ajustez-le dans « Ma cave » après la vente.';
+    notice('Choix du client enregistré. Stock inchangé.',{type:'success'});
+   }catch(error){
+    choose.disabled=false;
+    choose.removeAttribute('aria-busy');
+    choose.replaceChildren(document.createTextNode('Le client a choisi ce vin'));
+    throw error;
+   }
   }));
   article.append(choose,feedback);
  }
@@ -137,7 +150,9 @@ export function renderService(container,{dishes,wines},{role='staff',onNavigate=
     right.replaceChildren(errorState(error?.message||'Erreur de recommandation.',()=>submit.click()));
     return;
    }
-   const section=e('div',{},e('h2',{text:'Vos accords'}));
+   const section=e('div',{},e('h2',{text:'Vos accords'}),
+    e('p',{class:'result-confirmation',role:'status',
+     text:data.recommendations.length+' suggestion(s) vérifiée(s) dans votre cave.'}));
    if(data.classic){
     section.append(e('p',{class:'small-label',text:'L’ACCORD CLASSIQUE'}),card(data.classic,true,data.sessionId));
    }
