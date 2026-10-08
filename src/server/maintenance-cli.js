@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 import {pathToFileURL} from 'node:url';
 import {openDatabase} from './db.js';
 import {createBackup,restoreToNewPath} from './maintenance.js';
-import {backupKey,createEncryptedBackup,restoreEncryptedBackup} from './encrypted-backup.js';
+import {loadBackupKey,createEncryptedBackup,restoreEncryptedBackup} from './encrypted-backup.js';
 import {pruneServiceHistory} from './service-history.js';
 
 export async function main(args=process.argv.slice(2)){
@@ -20,7 +20,7 @@ export async function main(args=process.argv.slice(2)){
   }else if(command==='backup-encrypted'){
     const directory=option('--directory');
     if(!directory)throw Error('Usage: npm run backup -- backup-encrypted --directory /private/backups');
-    const key=backupKey();
+    const key=loadBackupKey();
     const database=openDatabase();
     try{
       const result=await createEncryptedBackup(database,resolve(directory),key);
@@ -29,7 +29,7 @@ export async function main(args=process.argv.slice(2)){
   }else if(command==='restore-encrypted'){
     const source=option('--from'),target=option('--to');
     if(!source||!target)throw Error('Usage: npm run backup -- restore-encrypted --from snapshot.ewb --to new.sqlite');
-    const key=backupKey();
+    const key=loadBackupKey();
     try{
       const result=await restoreEncryptedBackup(source,target,key);
       console.log('Restauration authentifiée et vérifiée vers : '+result.path);
