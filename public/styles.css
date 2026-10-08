@@ -222,6 +222,9 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .loading-detail{font-size:.76rem!important;color:#837779!important;line-height:1.5;max-width:34ch;margin:.45rem auto 0!important}
 .button.is-busy::before{content:none}
 .button.is-busy{display:inline-flex;align-items:center;justify-content:center;gap:.45rem}
+.button.is-busy:disabled{opacity:1;cursor:progress}
+.button.is-busy .wine-glass{animation:wine-breathe 2.2s ease-in-out infinite}
+@keyframes wine-breathe{0%,100%{transform:translateY(0);opacity:1}50%{transform:translateY(-1.25px);opacity:.78}}
 .button.is-busy .wine-glass__liquid{animation-duration:.7s}
 /* Wine on burgundy needs an ivory glass and a blush fill, not burgundy-on-burgundy. */
 .button.primary.is-busy .wine-glass__liquid{fill:#e9adae}
@@ -260,6 +263,7 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  .wine-glass__liquid,.wine-glass__liquid-glint,.wine-glass__surface,.result-card,#notification{animation:none!important}
  .wine-glass__liquid{clip-path:none}
  .wine-glass__liquid-glint{opacity:.55}
+ .button.is-busy .wine-glass{animation:none!important}
 }
 
 /* Author display:flex/grid must never override semantic hidden states. */

@@ -122,6 +122,11 @@ try{
   };
  });
  assert.deepEqual(colors,{wine:'rgb(233, 173, 174)',outline:'rgb(255, 249, 244)',busy:'true'});
+ assert.equal(await button.evaluate(el=>getComputedStyle(el).opacity),'1');
+ assert.match(await button.locator('.wine-glass').evaluate(el=>getComputedStyle(el).animationName),/wine-breathe/);
+ await page.emulateMedia({reducedMotion:'reduce'});
+ assert.equal(await button.locator('.wine-glass').evaluate(el=>getComputedStyle(el).animationName),'none');
+ await page.emulateMedia({reducedMotion:'no-preference'});
  assert.equal(await page.locator('#editor').isVisible(),true);
  releasePatch();
  await page.locator('#editor').waitFor({state:'hidden'});
