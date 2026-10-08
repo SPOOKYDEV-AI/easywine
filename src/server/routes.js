@@ -1,6 +1,6 @@
 
 import {randomUUID} from 'node:crypto';
-import {signIn,logout,publicUser,createUser,cookieFor,expiredCookie} from './auth.js';
+import {signIn,logout,publicUser,createUser,cookieFor,expiredCookie,passwordRecord,verifyPassword} from './auth.js';
 import {now,transaction,record,encode,wineFrom,dishFrom} from './db.js';
 import {recommend} from '../core/pairing.js';
 import {HttpError,fail,object,text,number,wineInput,dishInput,preferences} from './validation.js';
@@ -74,6 +74,54 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
   const tenant=user.restaurant_id;
 
   if(method==='GET'&&path==='/api/me')return {body:{user:publicUser(user)}};
+  if(method==='POST'&&path==='/api/me/password'){
+    const o=object(body);
+    if(!verifyPassword(user,o.currentPassword))fail('Mot de passe actuel incorrect.',403);
+    const credentials=passwordRecord(o.newPassword);
+    if(verifyPassword(user,o.newPassword))fail('Choisissez un mot de passe différent.',400);
+    transaction(db,()=>{
+      db.prepare('UPDATE users SET salt=?,password_hash=? WHERE restaurant_id=? AND id=?')
+        .run(credentials.salt,credentials.passwordHash,tenant,user.id);
+      db.prepare('DELETE FROM sessions WHERE user_id=?').run(user.id);
+      record(db,user,'password-change','user',user.id,undefined,{sessionsRevoked:true});
+    });
+    return {body:{ok:true},headers:{'Set-Cookie':expiredCookie(secure)}};
+  }
+  const memberMatch=path.match(/^\/api\/users\/([0-9a-f-]{36})$/);
+  if(method==='PATCH'&&memberMatch){
+    assertRole(user,'owner');
+    const target=db.prepare('SELECT id,name,email,role,active FROM users WHERE restaurant_id=? AND id=?').get(tenant,memberMatch[1]);
+    if(!target)fail('Utilisateur introuvable.',404);
+    if(target.id===user.id)fail('Désactivation de son propre compte interdite.',403);
+    const o=object(body);
+    if(typeof o.active!=='boolean'||Object.keys(o).some(k=>k!=='active'))fail('Seul le statut actif est modifiable.');
+    if(target.role==='owner')fail('Le compte propriétaire doit rester actif.',403);
+    transaction(db,()=>{
+      db.prepare('UPDATE users SET active=? WHERE restaurant_id=? AND id=?')
+        .run(Number(o.active),tenant,target.id);
+      if(!o.active)db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+      record(db,user,o.active?'activate':'deactivate','user',target.id,
+        {active:!!target.active},{active:o.active});
+    });
+    return {body:{id:target.id,active:o.active}};
+  }
+  const resetMatch=path.match(/^\/api\/users\/([0-9a-f-]{36})\/password$/);
+  if(method==='POST'&&resetMatch){
+    assertRole(user,'owner');
+    const target=db.prepare('SELECT id,role FROM users WHERE restaurant_id=? AND id=?').get(tenant,resetMatch[1]);
+    if(!target)fail('Utilisateur introuvable.',404);
+    if(target.id===user.id)fail('Utilisez le changement de mot de passe personnel.',400);
+    if(target.role==='owner')fail('Opération interdite sur un propriétaire.',403);
+    const o=object(body),credentials=passwordRecord(o.password);
+    transaction(db,()=>{
+      db.prepare('UPDATE users SET salt=?,password_hash=? WHERE restaurant_id=? AND id=?')
+        .run(credentials.salt,credentials.passwordHash,tenant,target.id);
+      db.prepare('DELETE FROM sessions WHERE user_id=?').run(target.id);
+      record(db,user,'password-reset','user',target.id,undefined,{sessionsRevoked:true});
+    });
+    return {body:{ok:true}};
+  }
+
   if(method==='POST'&&path==='/api/logout'){
     logout(db,cookie);
     return {body:{ok:true},headers:{'Set-Cookie':expiredCookie(secure)}};
