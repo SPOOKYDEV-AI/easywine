@@ -4,6 +4,7 @@ import {signIn,logout,publicUser,createUser,cookieFor,expiredCookie} from './aut
 import {now,transaction,record,encode,wineFrom,dishFrom} from './db.js';
 import {recommend} from '../core/pairing.js';
 import {HttpError,fail,object,text,number,wineInput,dishInput,preferences} from './validation.js';
+import {parseWineCsv,signature} from './import-csv.js';
 
 const loginAttempts=new Map();
 function checkRate(ip){
@@ -82,6 +83,37 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
   }
   if(method==='GET'&&path==='/api/dishes'){
     return {body:{dishes:db.prepare('SELECT * FROM dishes WHERE restaurant_id=? ORDER BY name').all(tenant).map(dishFrom)}};
+  }
+
+  if(method==='POST'&&(path==='/api/import/wines/preview'||path==='/api/import/wines/commit')){
+    assertRole(user,'owner','manager');
+    const o=object(body);
+    const parsed=parseWineCsv(o.csv);
+    const existing=db.prepare('SELECT producer,cuvee,vintage FROM wines WHERE restaurant_id=?').all(tenant);
+    const duplicateSet=new Set(existing.map(signature));
+    const issues=[...parsed.errors];
+    for(const row of parsed.rows){
+      const sig=signature(row.wine);
+      if(duplicateSet.has(sig))issues.push({line:row.line,error:'Vin déjà présent ou doublon dans le fichier.'});
+      duplicateSet.add(sig);
+    }
+    if(path.endsWith('/preview')){
+      return {body:{total:parsed.rows.length+parsed.errors.length,valid:parsed.rows.length,
+        errors:issues,sample:parsed.rows.slice(0,5).map(r=>r.wine),canImport:issues.length===0&&parsed.rows.length>0}};
+    }
+    if(issues.length||!parsed.rows.length)fail('Import refusé : '+issues.length+' erreur(s). Corrigez le fichier et refaites la prévisualisation.',422);
+    transaction(db,()=>{
+      const current=new Set(db.prepare('SELECT producer,cuvee,vintage FROM wines WHERE restaurant_id=?').all(tenant).map(signature));
+      for(const row of parsed.rows){
+        const sig=signature(row.wine);
+        if(current.has(sig))fail('Doublon détecté, import annulé.',409);
+        current.add(sig);
+        const key=randomUUID();
+        saveWine(db,tenant,key,row.wine,null);
+        record(db,user,'import','wine',key,undefined,row.wine);
+      }
+    });
+    return {status:201,body:{imported:parsed.rows.length}};
   }
   if(method==='POST'&&path==='/api/wines'){
     assertRole(user,'owner','manager');
