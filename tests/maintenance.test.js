@@ -18,7 +18,7 @@ test('WAL backup, integrity verification and non-destructive restore',async t=>{
  db.prepare('UPDATE restaurants SET name=? WHERE id=?').run('Maison vérifiée',first.restaurantId);
  const backup=await createBackup(db,join(dir,'backups'));
  assert.ok(backup.pages>0);
- assert.equal(backup.version,2);
+ assert.equal(backup.version,3);
  assert.equal(backup.restaurants,1);
  assert.equal(verifySnapshot(backup.path).restaurants,1);
  const recovered=join(dir,'recovered.sqlite');
