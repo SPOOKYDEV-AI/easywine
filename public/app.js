@@ -1,5 +1,5 @@
 
-import {byId,request,notice,handle,empty} from './ui.js';
+import {byId,request,notice,handle,loadingState,errorState,withBusy} from './ui.js';
 import {renderService} from './service.js';
 import {renderStats} from './stats.js';
 import {renderWines,renderDishes,renderHistory,renderUsers,addUserButton} from './admin.js';
@@ -9,9 +9,13 @@ let currentUser=null;
 let pendingMfaChallenge=null;
 let currentView='service';
 let store={wines:[],dishes:[]};
+let viewEpoch=0;
 const workspace=byId('workspace');
 
 function showLogin(){
+ viewEpoch++;
+ byId('boot').hidden=true;
+ byId('workspace').setAttribute('aria-busy','false');
  pendingMfaChallenge=null;
  byId('login-form').hidden=false;
  byId('mfa-form').hidden=true;
@@ -22,6 +26,7 @@ function showLogin(){
  byId('login-form').elements.password.value='';
 }
 function showShell(){
+ byId('boot').hidden=true;
  byId('login').hidden=true;
  byId('shell').hidden=false;
  byId('restaurant-name').textContent=currentUser.restaurantName;
@@ -43,20 +48,42 @@ async function refresh(){await load();await view(currentView);}
 async function view(name){
  if(!currentUser)return;
  if(currentUser.role==='staff'&&!['service','account'].includes(name))name='service';
+ const epoch=++viewEpoch;
  currentView=name;
- for(const button of document.querySelectorAll('#menu [data-view]'))
-  button.classList.toggle('active',button.dataset.view===name);
- workspace.replaceChildren(empty('Chargement…'));
- if(name==='service')renderService(workspace,store);
- else if(name==='wines')renderWines(workspace,store,refresh);
- else if(name==='dishes')renderDishes(workspace,store,refresh);
- else if(name==='history')await renderHistory(workspace);
- else if(name==='stats')await renderStats(workspace);
- else if(name==='users'){
-  await renderUsers(workspace,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
-  if(currentUser.role==='owner')addUserButton(workspace,refresh);
- }else if(name==='account')await renderAccount(workspace,currentUser,showLogin);
- workspace.focus({preventScroll:true});
+ for(const button of document.querySelectorAll('#menu [data-view]')){
+  const active=button.dataset.view===name;
+  button.classList.toggle('active',active);
+  if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
+ }
+ const messages={
+  service:'Préparation des accords…',wines:'Ouverture de la cave…',dishes:'Chargement de la carte…',
+  history:'Lecture de l’historique…',stats:'Calcul des statistiques…',
+  users:'Chargement de l’équipe…',account:'Ouverture des paramètres du compte…'
+ };
+ const staging=document.createElement('div');
+ const target=workspace;
+ target.setAttribute('aria-busy','true');
+ target.replaceChildren(loadingState(messages[name]||'Chargement…'));
+ try{
+  if(name==='service')renderService(staging,store);
+  else if(name==='wines')renderWines(staging,store,refresh);
+  else if(name==='dishes')renderDishes(staging,store,refresh);
+  else if(name==='history')await renderHistory(staging);
+  else if(name==='stats')await renderStats(staging);
+  else if(name==='users'){
+   await renderUsers(staging,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
+   if(currentUser.role==='owner')addUserButton(staging,refresh);
+  }else if(name==='account')await renderAccount(staging,currentUser,showLogin);
+  if(epoch!==viewEpoch)return;
+  target.replaceChildren(...staging.childNodes);
+  target.focus({preventScroll:true});
+  performance.mark('easywine:view:'+name+':ready');
+ }catch(error){
+  if(epoch!==viewEpoch)return;
+  target.replaceChildren(errorState(error?.message||'Une erreur est survenue.',()=>view(name)));
+ }finally{
+  if(epoch===viewEpoch)target.setAttribute('aria-busy','false');
+ }
 }
 byId('login-form').addEventListener('submit',handle(async event=>{
  event.preventDefault();
