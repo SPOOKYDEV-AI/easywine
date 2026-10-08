@@ -22,7 +22,7 @@ test('migrate an existing v1 SQLite database without losing restaurant records',
    .run('existing-restaurant','legacy','Restaurant historique',new Date().toISOString());
  v1.close();
  const upgraded=openDatabase(file);
- assert.equal(upgraded.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,2);
+ assert.equal(upgraded.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
  assert.equal(upgraded.prepare('SELECT name FROM restaurants WHERE slug=?').get('legacy').name,'Restaurant historique');
  assert.ok(upgraded.prepare("SELECT name FROM sqlite_master WHERE name='service_choices'").get());
  upgraded.close();
