@@ -1,6 +1,7 @@
 
 import {byId,request,notice,handle,empty} from './ui.js';
 import {renderService} from './service.js';
+import {renderStats} from './stats.js';
 import {renderWines,renderDishes,renderHistory,renderUsers,renderAccount,addUserButton} from './admin.js';
 
 let currentUser=null;
@@ -44,6 +45,7 @@ async function view(name){
  else if(name==='wines')renderWines(workspace,store,refresh);
  else if(name==='dishes')renderDishes(workspace,store,refresh);
  else if(name==='history')await renderHistory(workspace);
+ else if(name==='stats')await renderStats(workspace);
  else if(name==='users'){
   await renderUsers(workspace,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
   if(currentUser.role==='owner')addUserButton(workspace,refresh);
