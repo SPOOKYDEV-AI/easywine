@@ -9,7 +9,7 @@ export const encode=x=>JSON.stringify(x);
 export const decode=(x,def=[])=>{try{return x===null?def:JSON.parse(x);}catch{return def;}};
 
 
-const SCHEMA_VERSION=3;
+export const SCHEMA_VERSION=3;
 function migrate(db){
   const exists=db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='schema_version'").get();
   if(!exists){
