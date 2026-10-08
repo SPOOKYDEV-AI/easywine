@@ -1,5 +1,6 @@
 
 import {readFileSync} from 'node:fs';
+import {createHash} from 'node:crypto';
 import {HttpError} from './validation.js';
 
 const assets={
@@ -25,12 +26,24 @@ export function json(res,status,data,extra={}){
  res.writeHead(status,{...headers,'Content-Type':'application/json; charset=utf-8',...extra});
  res.end(JSON.stringify(data));
 }
-export function staticFile(path,res){
- if(!Object.hasOwn(assets,path))return false;
- const [filename,type]=assets[path];
+// Public bundles contain no user data. Cache their bytes in memory and
+// let browsers revalidate a versioned ETag rather than re-download each visit.
+// Private API responses retain Cache-Control: no-store.
+const staticAssets=new Map(Object.entries(assets).map(([url,[filename,type]])=>{
  const data=readFileSync(new URL('../../public/'+filename,import.meta.url));
- res.writeHead(200,{...headers,'Content-Type':type});
- res.end(data);
+ const etag='"'+createHash('sha256').update(data).digest('base64url')+'"';
+ return [url,{type,data,etag}];
+}));
+export function staticFile(path,res,req){
+ const asset=staticAssets.get(path);
+ if(!asset)return false;
+ const common={...headers,'Cache-Control':'public, max-age=0, must-revalidate',
+   ETag:asset.etag,'Content-Type':asset.type};
+ if(req?.headers['if-none-match']===asset.etag){
+  res.writeHead(304,common);res.end();return true;
+ }
+ res.writeHead(200,common);
+ res.end(asset.data);
  return true;
 }
 export async function jsonBody(req){
