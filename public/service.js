@@ -1,5 +1,5 @@
 
-import {element as e,heading,select,request,euro,empty,handle} from './ui.js';
+import {element as e,heading,select,request,euro,empty,handle,loadingState,errorState,withBusy} from './ui.js';
 
 const styles=[
  ['leger','Léger'],['frais','Frais'],['mineral','Minéral'],['aromatique','Aromatique'],
@@ -15,6 +15,13 @@ const budgets=[
  ['upper','120 – 200 €',12000,20000],
  ['premium','200 € et +',20000,null]
 ];
+const preferences={dishId:null,styles:new Set(),color:'',budget:'none'};
+export function resetServicePreferences(){
+ preferences.dishId=null;
+ preferences.styles.clear();
+ preferences.color='';
+ preferences.budget='none';
+}
 function pills(group,items,selected,onSelect){
  const wrap=e('div',{class:'chip-wrap'});
  for(const [value,title] of items){
@@ -74,9 +81,11 @@ export function renderService(container,{dishes}){
   left.append(empty('Aucun plat actif. Ajoutez des plats depuis « Ma carte ».'));
   right.append(empty('Les recommandations s’afficheront ici.'));return;
  }
- const chosenStyles=new Set();let chosenColor='',chosenBudget='none';
+ const chosenStyles=preferences.styles;
  left.append(e('h3',{class:'step-heading'},e('span',{class:'step',text:'01'}),'Choisir le plat'));
- const dishSelect=select('dish',active.map(d=>[d.id,d.name]));
+ const dishSelect=select('dish',active.map(d=>[d.id,d.name]),preferences.dishId);
+ if(!active.some(d=>d.id===dishSelect.value))preferences.dishId=dishSelect.value;
+ dishSelect.addEventListener('change',()=>{preferences.dishId=dishSelect.value;});
  dishSelect.setAttribute('aria-label','Plat du client');left.append(dishSelect);
 
  left.append(pills('02 · Les envies du client',styles.slice(0,6),
@@ -86,21 +95,28 @@ export function renderService(container,{dishes}){
   e('summary',{text:'Personnaliser davantage'}),
   pills('Autres styles',styles.slice(6),
     x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}),
-  pills('Couleur / type de vin',colors,x=>x===chosenColor,x=>{chosenColor=x;}),
-  pills('Budget éventuel',budgets,x=>x===chosenBudget,x=>{chosenBudget=x;}));
+  pills('Couleur / type de vin',colors,x=>x===preferences.color,x=>{preferences.color=x;}),
+  pills('Budget éventuel',budgets,x=>x===preferences.budget,x=>{preferences.budget=x;}));
  left.append(advanced);
  const submit=e('button',{type:'button',class:'button primary service-submit',text:'Trouver les meilleurs accords →'});
  left.append(submit);
  right.append(e('div',{class:'results-placeholder'},e('div',{class:'placeholder-icon',text:'✧'}),
   e('h2',{text:'Laissez parler votre cave.'}),e('p',{text:'Sélectionnez un plat et les préférences du client pour obtenir vos accords.'})));
  submit.addEventListener('click',handle(async()=>{
-  submit.disabled=true;submit.textContent='Recherche dans la cave…';
-  try{
-   const budget=budgets.find(b=>b[0]===chosenBudget);
-   const data=await request('POST','/api/recommend',{
-    dishId:dishSelect.value,styles:[...chosenStyles],color:chosenColor||null,
-    minPriceCents:budget[2],maxPriceCents:budget[3]
-   });
+  await withBusy(submit,async()=>{
+   right.setAttribute('aria-busy','true');
+   right.replaceChildren(loadingState('Recherche des vins réellement disponibles…'));
+   const budget=budgets.find(b=>b[0]===preferences.budget);
+   let data;
+   try{
+    data=await request('POST','/api/recommend',{
+     dishId:dishSelect.value,styles:[...chosenStyles],color:preferences.color||null,
+     minPriceCents:budget[2],maxPriceCents:budget[3]
+    });
+   }catch(error){
+    right.replaceChildren(errorState(error?.message||'Erreur de recommandation.',()=>submit.click()));
+    return;
+   }
    const section=e('div',{},e('h2',{text:'Vos accords'}));
    if(data.classic){
     section.append(e('p',{class:'small-label',text:'L’ACCORD CLASSIQUE'}),card(data.classic,true,data.sessionId));
@@ -113,7 +129,9 @@ export function renderService(container,{dishes}){
    }
    section.append(e('p',{class:'hint',text:data.explanation}));
    right.replaceChildren(section);
-   if(window.matchMedia('(max-width:1020px)').matches)right.scrollIntoView({behavior:'smooth',block:'start'});
-  }finally{submit.disabled=false;submit.textContent='Trouver les meilleurs accords →';}
+   if(window.matchMedia('(max-width:1020px)').matches)
+    right.scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion:reduce)').matches?'auto':'smooth',block:'start'});
+  },'Recherche dans la cave…');
+  right.setAttribute('aria-busy','false');
  }));
 }
