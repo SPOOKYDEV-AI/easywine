@@ -25,7 +25,7 @@ export function verifySnapshot(filename){
     const references=db.prepare('PRAGMA foreign_key_check').all();
     if(references.length)throw Error('SQLite foreign_key_check failed: '+references.length);
     const version=db.prepare('SELECT MAX(version) AS version FROM schema_version').get()?.version;
-    if(version!==2)throw Error('Unexpected database schema version: '+version);
+    if(version!==3)throw Error('Unexpected database schema version: '+version);
     return {version,restaurants:db.prepare('SELECT COUNT(*) AS n FROM restaurants').get().n};
   }finally{db.close();}
 }
