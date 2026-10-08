@@ -5,7 +5,7 @@ import {chromium} from 'playwright';
 import {openDatabase} from '../src/server/db.js';
 import {bootstrap} from '../src/server/bootstrap.js';
 import {createApp} from '../src/server/index.js';
-import {scanWCAG} from './axe-util.mjs';
+import {scanWCAG,installAxeForTest} from './axe-util.mjs';
 
 const db=openDatabase(':memory:');
 bootstrap(db,{slug:'a11y-house',name:'Maison Inclusive',email:'owner@example.fr',
@@ -15,6 +15,7 @@ let browser;
 try{
  browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1280,height:800}});
+ await installAxeForTest(page);
  const results=[];
  const scan=async title=>results.push(await scanWCAG(page,title));
  await page.goto('http://127.0.0.1:'+server.address().port,{waitUntil:'networkidle'});
