@@ -53,7 +53,7 @@ try{
  });
  await page.goto(origin,{waitUntil:'domcontentloaded'});
  await page.locator('#boot:not([hidden])').waitFor();
- await page.getByText('Préparation de votre espace…').waitFor();
+ await page.getByText('Vérification de votre session…').waitFor();
  await page.locator('#login:not([hidden])').waitFor();
  assert.equal(await page.locator('#boot').isVisible(),false);
  const guestAssets=await page.evaluate(()=>performance.getEntriesByType('resource')

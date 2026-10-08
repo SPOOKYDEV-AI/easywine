@@ -8,11 +8,13 @@ Luxe = précision, sobriété et réactivité. Pas d'animation qui ajoute artifi
 
 ## Motion design : le verre EasyWine
 
-- Forme vectorielle légère, tracé fin, verre sur fond ivoire ; vin bordeaux **#682c3c**.
-- Le liquide monte une fois, sans pourcentage fictif. L'animation est **indéterminée** ; elle ne représente pas le progrès réel d'une requête HTTP.
+- Verre SVG retravaillé (double liseré du buvant, reflet de pied, éclat dans le vin, ménisque), sur fond ivoire ; vin bordeaux **#682c3c**. Sur bouton primaire bordeaux, tracé ivoire et vin rosé pour un contraste lisible.
+- Le liquide monte une fois puis le ménisque oscille très légèrement **tant que le composant de chargement est présent**. Aucune boucle de remplissage artificielle, aucun faux pourcentage : le moteur ne fournit pas de progression réseau en octets.
+- À l'ouverture, la vérification de session et le chargement parallèle de la cave et de la carte conservent un seul écran de marque. Les libellés n'avancent **qu'après l'achèvement réel** de chaque réponse HTTP ; la navigation n'est affichée qu'une fois les deux jeux de données disponibles.
+- Pour les chargements de rubriques, imports et sauvegardes, l'indicateur reste visible jusqu'à la résolution effective de l'opération. Après 2,8 s, un texte discret signale la lenteur de réponse sans prétendre mesurer un pourcentage ni retarder la fin. Les échecs se terminent par une erreur réelle et une possibilité de reprise adaptée.
 - Le même actif intégré dans le HTML sert à trois échelles : **hero** à l'ouverture, **inline** pendant un changement de rubrique ou une recommandation, **mini** pendant une sauvegarde ou une vérification CSV.
 - Aucun GIF, bibliothèque tierce, police distante ni fichier réseau supplémentaire. Le chargement du premier écran fonctionne sans JavaScript jusqu'à la résolution du script.
-- `prefers-reduced-motion: reduce` : le verre est statique et rempli. Toutes les animations de carte ou toast sont également arrêtées.
+- `prefers-reduced-motion: reduce` : le verre est statique et rempli (reflets visibles), sans oscillation. Toutes les animations de carte ou toast sont également arrêtées.
 - Une interruption réseau n'affiche jamais une progression inventée. Le message reste contextualisé et propose une issue.
 
 ## Retours d'interaction
