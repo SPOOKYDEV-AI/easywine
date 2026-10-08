@@ -20,8 +20,8 @@ export async function renderStats(container){
     e('div',{},e('h3',{text:[wine.producer,wine.cuvee,wine.vintage].filter(Boolean).join(' ')}),
       e('p',{text:euro(wine.price_cents)})),
     e('div',{class:'item-actions'},
-      e('span',{class:'pill',text:wine.generated+' calculée(s)'}),
-      e('span',{class:'pill',text:wine.chosen+' choix'}))));
+      e('span',{class:'pill',text:'Calculées · '+wine.generated}),
+      e('span',{class:'pill',text:'Choisies · '+wine.chosen}))));
   }
   panel.append(list);
  }
