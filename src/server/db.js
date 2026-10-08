@@ -13,6 +13,8 @@ const SCHEMA_VERSION=1;
 function migrate(db){
   const exists=db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='schema_version'").get();
   if(!exists){
+    const foreignTables=db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'").all();
+    if(foreignTables.length)throw Error('Refusing to initialize EasyWine schema over an unknown nonempty database.');
     // SQLite DDL participates in this transaction. A crash cannot leave half
     // of the initial schema, and a later release must use explicit migrations.
     transaction(db,()=>{
