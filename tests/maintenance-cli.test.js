@@ -21,15 +21,16 @@ test('operator CLI creates authenticated encrypted backup and recovers new datab
  writeFileSync(keyFile,randomBytes(32).toString('hex')+'\n',{mode:0o600});
  const oldDb=process.env.EASYWINE_DB,oldFile=process.env.EASYWINE_BACKUP_KEY_FILE;
  const oldRaw=process.env.EASYWINE_BACKUP_KEY;
- const backups=join(dir,'backups'),restore=join(dir,'recovered.sqlite');
+ const backups=join(dir,'backups'),replicas=join(dir,'replica'),restore=join(dir,'recovered.sqlite');
  try{
   process.env.EASYWINE_DB=dbPath;
   process.env.EASYWINE_BACKUP_KEY_FILE=keyFile;
   delete process.env.EASYWINE_BACKUP_KEY;
-  await main(['backup-encrypted','--directory',backups]);
+  await main(['backup-encrypted','--directory',backups,'--replica-dir',replicas]);
   const files=readdirSync(backups);
   assert.equal(files.length,1);
   assert.match(files[0],/\.ewb$/);
+  assert.deepEqual(readdirSync(replicas),files);
   await main(['restore-encrypted','--from',join(backups,files[0]),'--to',restore]);
   assert.equal(existsSync(restore),true);
   const restored=openDatabase(restore);
