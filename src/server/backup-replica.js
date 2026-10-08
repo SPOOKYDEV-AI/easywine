@@ -9,7 +9,8 @@ const remove=file=>{
  try{unlinkSync(file);}catch(error){if(error.code!=='ENOENT')throw error;}
 };
 function syncPath(file){
- const fd=openSync(file,'r');
+ // Windows FlushFileBuffers requires a write-capable file handle.
+ const fd=openSync(file,process.platform==='win32'?'r+':'r');
  try{fsyncSync(fd);}finally{closeSync(fd);}
 }
 function syncDirectory(folder){

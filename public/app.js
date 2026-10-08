@@ -107,7 +107,8 @@ byId('logout-mobile').addEventListener('click',logout);
 window.addEventListener('easywine:unauthorized',showLogin);
 (async()=>{
  try{
-  const result=await request('GET','/api/me');
+  const result=await request('GET','/api/session');
+  if(!result.user){showLogin();return;}
   currentUser=result.user;
   await load();showShell();await view('service');
  }catch(error){showLogin();}

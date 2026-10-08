@@ -36,7 +36,16 @@ test('API authorization, tenancy, classic history, stock and optimistic updates'
   assert.match(r.cookie,/^ew_session=/);
   return r.cookie;
  };
+ const anonymous=await call('GET','/api/session');
+ assert.equal(anonymous.status,200);
+ assert.equal(anonymous.value.user,null);
  const alice=await login('maison-a','a@example.fr'),bob=await login('maison-b','b@example.fr');
+ const active=await call('GET','/api/session',null,alice);
+ assert.equal(active.status,200);
+ assert.equal(active.value.user.name,'Alice');
+ assert.equal(active.value.user.restaurantName,'Maison A');
+ assert.equal(active.value.user.password_hash,undefined);
+ assert.equal(active.value.user.salt,undefined);
  const staff=await login('maison-a','staff@example.fr');
  assert.equal((await call('GET','/api/wines')).status,401);
  assert.equal((await call('POST','/api/wines',wine,staff)).status,403);
@@ -76,4 +85,5 @@ test('API authorization, tenancy, classic history, stock and optimistic updates'
  const logout=await call('POST','/api/logout',{},alice);
  assert.equal(logout.status,200);
  assert.equal((await call('GET','/api/me',null,alice)).status,401);
+ assert.equal((await call('GET','/api/session',null,alice)).value.user,null);
 });
