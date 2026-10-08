@@ -21,6 +21,7 @@ try{
  const page=await browser.newPage({viewport:{width:1024,height:768}});
  const errors=[];
  page.on('pageerror',x=>errors.push(x.message));
+ page.on('response',res=>{if(res.status()>=400&&!res.url().endsWith('/api/me'))errors.push('HTTP '+res.status()+' '+res.url());});
  async function login(){
   await page.locator('#login-form input[name=slug]').fill('mfa-chrome');
   await page.locator('#login-form input[name=email]').fill('owner@example.fr');
@@ -33,7 +34,12 @@ try{
  await page.locator('#menu [data-view=account]').click();
  await page.locator('.account-grid input[autocomplete=current-password]').last().fill('Chrome-MFA-Test-2026!');
  await page.getByRole('button',{name:'Commencer la configuration'}).click();
- await page.locator('.secret-value').waitFor();
+ try{await page.locator('.secret-value').waitFor({timeout:8000});}
+ catch(error){
+  console.log('MFA_ACCOUNT_DIAGNOSTIC:',(await page.locator('#workspace').innerText()).slice(0,1600));
+  console.log('MFA_NETWORK_DIAGNOSTIC:',errors.slice(-10));
+  throw error;
+ }
  const encrypted=db.prepare('SELECT encrypted_secret FROM mfa_credentials WHERE user_id=?')
   .get(owner.userId).encrypted_secret;
  const secret=decryptMfaSecret(encrypted,owner.userId,key);
