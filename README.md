@@ -10,6 +10,7 @@ EasyWine aide le personnel de salle à recommander rapidement des bouteilles **r
 - Authentification par session HTTP-only, rôles owner / manager / staff, vérifications serveur tenant par tenant.
 - Base SQLite transactionnelle avec WAL, migrations versionnées, sauvegardes vérifiées, contrôle de version optimiste et journal d'audit.
 - Révocation immédiate des comptes, changement de mot de passe et invalidation des sessions.
+- Second facteur facultatif TOTP pour chaque utilisateur : défi à la connexion, codes de récupération à usage unique et secret chiffré avec clé indépendante.
 - Exclusions d'accords configurables par plat, suivis des propositions affichées et des vins sélectionnés.
 - Mouvements de stock justifiés et historisés (réapprovisionnement, consommation, perte, correction), protection contre les retries et les doubles déductions.
 - Algorithme déterministe, sans API payante et sans promesse de sommellerie automatisée.
@@ -93,6 +94,21 @@ La commande refuse les clés incorrectes, les archives modifiées et les destina
 
 **Limites d'exploitation :** SQLite produit temporairement une copie non chiffrée dans un répertoire privé du disque temporaire pendant les opérations de sauvegarde/restauration, effacée en cas de sortie normale mais potentiellement récupérable après crash. Choisir un système de fichiers temporaire protégé/chiffré ou un disque chiffré. Les sauvegardes ne sont pas encore planifiées ni externalisées automatiquement ; configurer le planificateur du serveur et la copie hors site avec les accès minimums, la rétention, les alertes et des exercices périodiques de restauration. Une perte de clé rend les archives chiffrées irrécupérables.
 
+
+## Double authentification TOTP (facultative)
+
+Le second facteur est une option de sécurité par utilisateur, distincte des sessions. Lorsqu'il est activé, un mot de passe correct déclenche un défi de 5 minutes mais **ne délivre aucun cookie de session**. Le serveur exige un code TOTP (RFC 6238, 6 chiffres, fenêtres ±30 s, anti-rejeu) ou un code de secours à usage unique. Les tentatives MFA sont limitées et un verrouillage temporaire est conservé dans SQLite. Modifier un mot de passe révoque aussi les défis non terminés.
+
+Avant d'activer la fonction, générer une **autre** clé aléatoire de 32 octets, distincte de la clé des sauvegardes. La conserver hors Git et sauvegarder séparément son accès :
+
+    node -e "const fs=require('node:fs'),c=require('node:crypto');fs.writeFileSync(process.argv[1],c.randomBytes(32).toString('hex')+'\\n',{flag:'wx',mode:0o600})" /dossier-prive/easywine-mfa.key
+
+Configurer `EASYWINE_MFA_KEY_FILE` (ou `EASYWINE_MFA_KEY`, **jamais les deux**), puis redémarrer le processus EasyWine. Sur Unix, la clé doit rester lisible uniquement par le compte de service. Sur Windows, vérifier les ACL NTFS. Le secret TOTP individuel est chiffré en AES-256-GCM et lié à l'identifiant de l'utilisateur. La clé de chiffrement **n'est jamais enregistrée dans la BDD**.
+
+Depuis **Mon compte**, confirmer son mot de passe puis inscrire la clé dans une application d'authentification TOTP. Un test confirme l'activation et le serveur remet **huit codes de récupération** affichés une seule fois. Les codes ne sont conservés en BDD que sous forme de condensats. Une activation ou désactivation réussie révoque toutes les sessions concernées.
+
+**Points de vigilance :** si la clé MFA de l'installation est perdue, les facteurs enregistrés ne peuvent plus être déchiffrés. En cas de perte de l'appareil, utiliser un code de secours inutilisé. La récupération administrative d'urgence doit être maîtrisée avant toute exploitation publique. TOTP reste sensible au phishing ; WebAuthn/passkeys ou SSO peuvent renforcer ce modèle dans une évolution contrôlée. **Ne jamais désactiver le MFA automatiquement quand le réseau ou le service MFA est indisponible.**
+
 ## Gestion des stocks
 
 Depuis **Ma cave → Mouvements**, chaque entrée/sortie impose une variation entière, un motif et une justification. Le serveur empêche le stock négatif, les conflits de modification et la répétition d'un mouvement déjà confirmé (clé d'idempotence). Les importations CSV et le stock initial créent aussi des lignes de traçabilité. Lors de la migration des anciennes bases (v2 → v3), chaque vin reçoit une ligne `baseline` indiquant que les mouvements antérieurs sont inconnus, et **pas** une vente fictive.
@@ -111,7 +127,7 @@ Restaurer **vers un nouveau fichier**, sans écraser la base en cours d'utilisat
 
 Sous PowerShell, placez les chemins entre guillemets, par exemple `npm run backup -- backup --directory "C:\\EasyWine\\backups"`. Pour basculer : arrêter le service, modifier `EASYWINE_DB` pour pointer vers la nouvelle base puis redémarrer. Conserver l'ancienne base intacte pour le rollback. Les sauvegardes doivent être conservées hors du serveur, protégées et restaurées lors d'exercices réguliers. La commande ne remplace pas une vraie politique de sauvegarde externalisée.
 
-La base est migrée transactionnellement de v1 à v2 puis de v2 à v3 au démarrage. Une archive SQLite historique v1 ou v2 peut être restaurée dans un **nouveau** fichier, puis migrée par EasyWine au démarrage ; aucun fichier source n'est réécrit. Les formats inconnus sont refusés. La vérification de sauvegarde v3 contrôle aussi la continuité du journal de stock avec la quantité courante. Les versions inconnues provoquent un refus de démarrage (pas de migration destructive implicite).
+La base est migrée transactionnellement de v1 à v2, de v2 à v3 puis de v3 à v4 au démarrage. Une archive SQLite historique v1, v2 ou v3 peut être restaurée dans un **nouveau** fichier, puis migrée par EasyWine au démarrage ; aucun fichier source n'est réécrit. Les formats inconnus sont refusés. La vérification de sauvegarde v3 contrôle aussi la continuité du journal de stock avec la quantité courante. Les versions inconnues provoquent un refus de démarrage (pas de migration destructive implicite).
 
 Purger l'historique de service au-delà d'une durée définie par la politique de conservation du restaurant (exemple 180 jours) :
 
@@ -134,7 +150,7 @@ Les tests couvrent également les imports de cave et les contraintes du moteur e
 - **Usage hors Internet :** un serveur EasyWine accessible sur le réseau local peut continuer à fonctionner sans Internet ; l'application ne fonctionne pas lorsque sa propre API est inaccessible. Ce n'est **pas** une PWA hors-ligne autonome.
 - **Données statistiques :** une recommandation affichée n'est pas une vente. Le serveur enregistre la liste des vins présentés et uniquement les choix que le personnel confirme ; il ne décrémente **jamais automatiquement** le stock.
 - **Architecture :** mono-instance SQLite. Passer à PostgreSQL et aux contrôles de tenant côté base pour un SaaS distribué et des opérations multi-processus.
-- **Conformité :** cette version ne constitue pas une validation RGPD/CNIL. Les comptes et les événements de service peuvent identifier des salariés. Avant exploitation publique : information, base légale, gestion des droits, durées de conservation, contrat de sous-traitance si applicable, durcissement réseau, surveillance, gestion opérationnelle des sauvegardes chiffrées, MFA/SSO et procédure de récupération d'un compte propriétaire.
+- **Conformité :** cette version ne constitue pas une validation RGPD/CNIL. Les comptes et les événements de service peuvent identifier des salariés. Avant exploitation publique : information, base légale, gestion des droits, durées de conservation, contrat de sous-traitance si applicable, durcissement réseau, surveillance, gestion opérationnelle des sauvegardes chiffrées, déploiement effectif du MFA et procédure de récupération d'un compte propriétaire.
 
 ## Structure
 
@@ -145,5 +161,7 @@ Les tests couvrent également les imports de cave et les contraintes du moteur e
 - src/server/migrations — évolutions atomiques du schéma SQLite
 - src/server/maintenance* et encrypted-backup.js — sauvegarde, chiffrement, restauration et conservation
 - src/server/stock-ledger.js — historique des mouvements de stock et idempotence
+- src/server/mfa*.js, secret-key.js — second facteur, défi, cryptographie et récupération
+- public/account.js — gestion de compte et second facteur
 
 Les contributions arrivent sur branche et pull request. main reste la référence stable.
