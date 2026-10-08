@@ -56,6 +56,10 @@ try{
  await page.getByText('Préparation de votre espace…').waitFor();
  await page.locator('#login:not([hidden])').waitFor();
  assert.equal(await page.locator('#boot').isVisible(),false);
+ const guestAssets=await page.evaluate(()=>performance.getEntriesByType('resource')
+  .map(x=>new URL(x.name).pathname));
+ for(const module of ['/admin.js','/account.js','/stats.js','/service.js'])
+  assert.equal(guestAssets.includes(module),false,'Anonymous boot should not fetch '+module);
  let loginRequests=0;
  await page.route('**/api/login',async route=>{loginRequests++;await sleep(350);await route.continue();});
  await page.locator('#login-form input[name=slug]').fill('ux-test');
@@ -80,6 +84,8 @@ try{
  await page.getByText('Calcul des statistiques…').waitFor();
  await page.locator('#menu [data-view=wines]').click();
  await page.getByText('Réserve de test').waitFor();
+ assert.equal(await page.evaluate(()=>performance.getEntriesByType('resource')
+  .some(x=>new URL(x.name).pathname==='/admin.js')),true);
  await sleep(530);
  assert.equal(await page.locator('#menu [data-view=wines]').getAttribute('aria-current'),'page');
  assert.equal(await page.getByText('Statistiques du service').count(),0);
