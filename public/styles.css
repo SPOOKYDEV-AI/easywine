@@ -104,3 +104,15 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .onboarding-hint .hint{margin-bottom:0}
 .result-count{margin:.3rem 0 .75rem}
 .load-more{justify-self:center;margin:1rem 0}
+
+/* Screenshot review: keep account operations readable without oversized headings. */
+.account-grid .form-card h2{font-size:clamp(1.65rem,2.2vw,2.2rem);line-height:1.2;margin-bottom:.65rem}
+.account-grid .form-card>p{margin-bottom:1.2rem}
+.account-grid .panel h2{overflow-wrap:normal}
+@media(max-width:680px){
+ .account-grid .panel{padding:1.15rem}
+ .account-grid .form-card h2{font-size:1.7rem}
+ .account-grid .form-card>p{margin-bottom:1rem}
+ #menu{scrollbar-width:thin;scrollbar-color:#d1b8b8 transparent;scroll-padding-inline:.65rem;scroll-snap-type:x proximity}
+ #menu .nav-link{scroll-snap-align:start;flex-shrink:0}
+}
