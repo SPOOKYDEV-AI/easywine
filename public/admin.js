@@ -1,5 +1,5 @@
 
-import {byId,element as e,heading,empty,euro,request,notice,handle,field,choiceField,scale,withBusy} from './ui.js';
+import {byId,element as e,heading,empty,euro,request,notice,handle,field,choiceField,scale,withBusy,wineGlass} from './ui.js';
 
 const colors=[['rouge','Rouge'],['blanc','Blanc'],['rose','Rosé'],['bulles','Bulles'],['doux','Vin doux']];
 const tags=['leger','frais','mineral','aromatique','gourmand','puissant','structure','original','classique','decouverte'];
@@ -81,20 +81,32 @@ function importEditor(refresh){
  edit('Importer une cave CSV',fields=>{
   fields.append(e('p',{class:'muted',text:'Champs requis : producer, cuvee, color, body, acidity, tannin, aromatic, price_eur, stock. Séparateur point-virgule ou virgule.'}));
   const file=e('input',{type:'file',accept:'.csv,text/csv'});
-  const preview=e('div',{class:'hint',text:'Sélectionnez votre CSV pour vérifier les références.'});
+  const preview=e('div',{class:'hint import-preview',role:'status','aria-live':'polite',text:'Sélectionnez votre CSV pour vérifier les références.'});
   fields.append(e('label',{},'Fichier CSV',file),preview);
   file.addEventListener('change',handle(async()=>{
    validatedCsv=null;
    const selected=file.files[0];
    if(!selected)return;
    if(selected.size>130000)throw Error('CSV limité à 130 Ko.');
-   const source=await selected.text();
-   const summary=await request('POST','/api/import/wines/preview',{csv:source});
-   preview.replaceChildren(e('p',{text:summary.valid+' références valides sur '+summary.total+'.'}));
-   for(const item of summary.sample)preview.append(e('p',{text:item.producer+' · '+item.cuvee+' · '+euro(item.priceCents)}));
-   for(const issue of summary.errors.slice(0,10))preview.append(e('p',{class:'danger',text:'Ligne '+issue.line+' : '+issue.error}));
-   if(summary.errors.length>10)preview.append(e('p',{text:(summary.errors.length-10)+' erreurs supplémentaires.'}));
-   if(summary.canImport)validatedCsv=source;
+   preview.setAttribute('aria-busy','true');
+   preview.replaceChildren(wineGlass('mini'),e('span',{text:' Vérification de votre fichier…'}));
+   try{
+    const source=await selected.text();
+    const summary=await request('POST','/api/import/wines/preview',{csv:source});
+    preview.replaceChildren(e('p',{text:summary.valid+' références valides sur '+summary.total+'.'}));
+    for(const item of summary.sample)preview.append(e('p',{text:item.producer+' · '+item.cuvee+' · '+euro(item.priceCents)}));
+    for(const issue of summary.errors.slice(0,10))preview.append(e('p',{class:'danger',text:'Ligne '+issue.line+' : '+issue.error}));
+    if(summary.errors.length>10)preview.append(e('p',{text:(summary.errors.length-10)+' erreurs supplémentaires.'}));
+    if(summary.canImport){
+     validatedCsv=source;
+     preview.prepend(e('p',{class:'preview-confirmation',text:'✓ Fichier vérifié · prêt à importer.'}));
+    }
+   }catch(error){
+    preview.replaceChildren(e('p',{class:'danger',text:'Import indisponible : le fichier n’a pas été validé.'}));
+    throw error;
+   }finally{
+    preview.removeAttribute('aria-busy');
+   }
   }));
  },async()=>{
   if(!validatedCsv)throw Error('Vérifiez le CSV avant import.');
