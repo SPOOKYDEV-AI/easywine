@@ -39,7 +39,7 @@ function card(entry,classic=false){
  const article=e('article',{class:'result-card'+(classic?' classic':'')},top);
  if(classic){
   article.append(e('p',{class:entry.available?'hint':'danger',
-    text:entry.available?'Disponible dans votre cave':"Indisponible : l'accord de référence est conservé, mais ne peut pas être proposé."}));
+    text:entry.blocked?'Exclu pour ce plat par le restaurateur. Accord conservé mais non proposable.':(entry.available?'Disponible dans votre cave':"Indisponible : l'accord de référence est conservé, mais ne peut pas être proposé.")}));
  }else{
   article.append(e('p',{text:entry.reason}),
     e('p',{class:'small-label',text:'À DIRE AU CLIENT'}),
