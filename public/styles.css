@@ -27,3 +27,17 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .stat-tile strong{font:2.6rem Georgia,serif;color:#682c3c}
 .choice-button{margin-top:.6rem;margin-right:1rem}
 @media(max-width:680px){.stats-grid{grid-template-columns:1fr;gap:.6rem}.stat-tile strong{font-size:2rem}}
+
+.optional-filters{border-top:1px solid #efe6df;margin-top:1rem;padding-top:.65rem}
+.optional-filters summary{color:#682c3c;font-size:.87rem;font-weight:700;cursor:pointer;min-height:44px;display:flex;align-items:center;gap:.4rem}
+.optional-filters summary::marker{color:#b28a70}
+.optional-filters[open] summary{margin-bottom:.5rem}
+.optional-filters .filter-group{margin-top:.5rem;padding-top:.6rem}
+.mobile-logout{display:none}
+@media(max-width:680px){
+ .sidebar .aside-bottom{display:none}
+ .mobile-logout{display:inline-flex;align-items:center;color:#682c3c;background:#f4e9e8;border:0;padding:.5rem .7rem;border-radius:8px;font-size:.78rem;font-weight:700}
+ .topbar #today{display:none}
+ .topbar{gap:.5rem}
+ .sidebar nav{flex-wrap:nowrap}
+}
