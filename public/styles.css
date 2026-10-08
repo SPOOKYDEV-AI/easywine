@@ -248,3 +248,6 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  .wine-glass__liquid,.wine-glass__surface,.result-card,#notification{animation:none!important}
  .wine-glass__liquid{clip-path:none}
 }
+
+/* Author display:flex/grid must never override semantic hidden states. */
+[hidden]{display:none!important}
