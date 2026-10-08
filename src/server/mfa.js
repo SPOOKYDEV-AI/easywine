@@ -39,13 +39,32 @@ function validFactor(db,row,code,key,{allowRecovery=true}={}){
     return null;
   }finally{secret.fill(0);}
 }
+export function verifyMfaServerKey(db){
+  const rows=db.prepare('SELECT user_id,encrypted_secret FROM mfa_credentials WHERE enabled=1').all();
+  if(!rows.length)return {configured:false,accounts:0};
+  const key=loadMfaKey();
+  try{
+    for(const row of rows){
+      const secret=decryptMfaSecret(row.encrypted_secret,row.user_id,key);
+      secret.fill(0);
+    }
+  }finally{key.fill(0);}
+  return {configured:true,accounts:rows.length};
+}
+function mfaSetupAvailable(){
+  try{
+    const key=loadMfaKey();key.fill(0);
+    return true;
+  }catch{return false;}
+}
 export function mfaStatus(db,user){
   const row=credential(db,user.id);
   const recovery=db.prepare('SELECT COUNT(*) AS n FROM mfa_recovery_codes WHERE user_id=?').get(user.id).n;
-  return {enabled:!!row?.enabled,pending:!!(row&&!row.enabled&&row.pending_expires_at>now()),
+  return {available:mfaSetupAvailable(),enabled:!!row?.enabled,pending:!!(row&&!row.enabled&&row.pending_expires_at>now()),
     recoveryCodesRemaining:recovery};
 }
 export function startEnrollment(db,user,password){
+  if(!mfaSetupAvailable())fail('Second facteur indisponible : configuration serveur manquante.',503);
   if(!verifyPassword(user,password))fail('Mot de passe actuel incorrect.',403);
   const current=credential(db,user.id);
   if(current?.enabled)fail('Second facteur déjà configuré.',409);
