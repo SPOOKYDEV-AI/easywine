@@ -4,6 +4,11 @@ import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {randomUUID} from 'node:crypto';
 import {openDatabase} from '../src/server/db.js';
+import {stockMovement,verifyStockLedger} from '../src/server/stock-ledger.js';
+import {createBackup} from '../src/server/maintenance.js';
+import {mkdtempSync,rmSync,readdirSync} from 'node:fs';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
 import {bootstrap} from '../src/server/bootstrap.js';
 import {createUser} from '../src/server/auth.js';
 import {createApp} from '../src/server/index.js';
@@ -76,4 +81,31 @@ test('stock ledger is tenant isolated, transactionally consistent and retry-safe
  const logs=await req('GET','/api/audit',null,alice);
  assert.ok(logs.data.events.some(x=>x.action==='stock-adjust'));
  assert.equal((await req('GET','/api/wines',null,bob)).data.wines.length,0);
+});
+
+test('backups fail closed when an external writer bypasses the stock journal',async t=>{
+ const dir=mkdtempSync(join(tmpdir(),'ew-ledger-integrity-'));
+ t.after(()=>rmSync(dir,{recursive:true,force:true}));
+ const db=openDatabase(':memory:');
+ try{
+  const owner=bootstrap(db,{slug:'ledger-check',name:'Maison',email:'owner@example.fr',owner:'Owner',password});
+  const actor={id:owner.userId,restaurant_id:owner.restaurantId};
+  const wineId=randomUUID();
+  db.prepare(
+   'INSERT INTO wines(id,restaurant_id,producer,cuvee,color,body,acidity,tannin,aromatic,price_cents,stock,updated_at)'+
+   ' VALUES(?,?,?,?,?,?,?,?,?,?,?,?)'
+  ).run(wineId,owner.restaurantId,'Domaine','Cuvée','rouge',3,3,3,3,7000,2,new Date().toISOString());
+  stockMovement(db,actor,wineId,0,2,'opening','Ouverture');
+  assert.equal(verifyStockLedger(db),true);
+  db.prepare('UPDATE wines SET stock=3 WHERE id=?').run(wineId);
+  assert.throws(()=>verifyStockLedger(db),/Stock actuel incompatible/);
+  await assert.rejects(()=>createBackup(db,dir),/Stock actuel incompatible/);
+  assert.deepEqual(readdirSync(dir),[]);
+  db.prepare('UPDATE wines SET stock=2 WHERE id=?').run(wineId);
+  db.prepare('UPDATE wines SET stock=5 WHERE id=?').run(wineId);
+  stockMovement(db,actor,wineId,2,5,'restock','Livraison');
+  assert.equal(verifyStockLedger(db),true);
+  db.prepare("UPDATE stock_movements SET before_stock=1 WHERE reason='restock'").run();
+  assert.throws(()=>verifyStockLedger(db),/Chaîne de stock incohérente/);
+ }finally{db.close();}
 });
