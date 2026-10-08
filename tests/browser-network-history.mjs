@@ -66,7 +66,7 @@ try{
  assert.match(await page.locator('#network-status-text').innerText(),/ne répond pas/i);
  await page.unroute('**/api/stats');
  await page.locator('#network-retry').click();
- await page.locator('#network-status[hidden]').waitFor({state:'attached'});
+ assert.equal(await page.locator('#network-status').isHidden(),true);
  await page.getByRole('button',{name:'Réessayer'}).click();
  await page.getByText('Statistiques du service').waitFor();
 
@@ -76,7 +76,7 @@ try{
  assert.match(await page.locator('#network-status-text').innerText(),/Réseau indisponible/i);
  await page.context().setOffline(false);
  await page.locator('#network-retry').click();
- await page.locator('#network-status[hidden]').waitFor({state:'attached'});
+ assert.equal(await page.locator('#network-status').isHidden(),true);
 
  // An old tenant's delayed data must never repopulate a new tenant's view.
  await page.locator('#menu [data-view=account]').click();
