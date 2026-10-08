@@ -23,3 +23,32 @@ export function stockHistory(db,tenant,wineId,limit=100){
     'WHERE m.restaurant_id=? AND m.wine_id=? ORDER BY m.created_at DESC,m.rowid DESC LIMIT ?'
   ).all(tenant,wineId,limit);
 }
+
+/**
+ * Detect out-of-band stock edits and gaps in the movement chain.
+ * Intended for disaster-recovery checks, not the hot recommendation path.
+ */
+export function verifyStockLedger(db){
+  const gap=db.prepare(`
+    WITH entries AS (
+      SELECT restaurant_id,wine_id,before_stock,
+        LAG(after_stock) OVER (
+          PARTITION BY restaurant_id,wine_id ORDER BY rowid
+        ) AS previous
+      FROM stock_movements
+    )
+    SELECT restaurant_id,wine_id FROM entries
+    WHERE previous IS NOT NULL AND previous != before_stock LIMIT 1
+  `).get();
+  if(gap)throw Error('Chaîne de stock incohérente pour le vin '+gap.wine_id);
+  const divergent=db.prepare(`
+    SELECT w.id FROM wines w
+    WHERE w.stock != COALESCE(
+      (SELECT m.after_stock FROM stock_movements m
+       WHERE m.restaurant_id=w.restaurant_id AND m.wine_id=w.id
+       ORDER BY m.rowid DESC LIMIT 1),-1)
+    LIMIT 1
+  `).get();
+  if(divergent)throw Error('Stock actuel incompatible avec son historique : '+divergent.id);
+  return true;
+}
