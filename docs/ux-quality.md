@@ -38,7 +38,8 @@ Un choix déclaré n'est **jamais** une vente encaissée. Les décisions de stoc
 2. `tests/browser-smoke.mjs` : connexion, cave, plats, import, mouvement, conseil, choix, statistiques et téléphone.
 3. `tests/browser-mfa.mjs` : enrôlement TOTP, codes de secours, connexion en deux étapes, téléphone.
 4. `tests/browser-ux.mjs` : chargement initial retardé, bouton de connexion pendant latence, ordre des réponses lors de navigation rapide, défaillance réseau + reprise, délai des recommandations, réduction des animations, overflow mobile. Il produit `test-artifacts/ux-lab-metrics.json` et inscrit `BROWSER_UX_OK` dans les logs CI.
-5. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
+5. `tests/browser-scale.mjs` : génération synthétique de 2 400 vins, mesure de la connexion avec chargement de cave, rendu initial limité à 80 lignes, expansion à 160, recherche sur les 2 400, contrôle DOM/overflow mobile. Produit `ux-scale.json`, sans donnée restaurant réelle.
+6. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
 
 ### Indicateurs
 
