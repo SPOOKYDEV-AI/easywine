@@ -11,7 +11,7 @@ EasyWine aide le personnel de salle à recommander rapidement des bouteilles **r
 - Base SQLite transactionnelle avec WAL, migrations versionnées, sauvegardes vérifiées, contrôle de version optimiste et journal d'audit.
 - Révocation immédiate des comptes, changement de mot de passe et invalidation des sessions.
 - Second facteur facultatif TOTP pour chaque utilisateur : défi à la connexion, codes de récupération à usage unique et secret chiffré avec clé indépendante.
-- Exclusions d'accords configurables par plat, suivis des propositions affichées et des vins sélectionnés.
+- Exclusions d'accords configurables par plat, suivi des **propositions calculées** et des vins explicitement sélectionnés.
 - Mouvements de stock justifiés et historisés (réapprovisionnement, consommation, perte, correction), protection contre les retries et les doubles déductions.
 - Algorithme déterministe, sans API payante et sans promesse de sommellerie automatisée.
 
@@ -180,7 +180,7 @@ Les tests couvrent également les imports de cave et les contraintes du moteur e
 - **À valider avec des professionnels du vin :** calibration des coefficients d'accord. Le score est heuristique, pas une mesure scientifique de qualité gastronomique.
 - **Non réalisé dans cette version :** import Excel natif (.xlsx), POS/Trivec, gestion des réservations, intégration automatique aux ventes POS, analytics avancées, véritable fonctionnement hors connexion au serveur, gestion de plusieurs établissements par un même compte et reprise automatique après sinistre.
 - **Usage hors Internet :** un serveur EasyWine accessible sur le réseau local peut continuer à fonctionner sans Internet ; l'application ne fonctionne pas lorsque sa propre API est inaccessible. Ce n'est **pas** une PWA hors-ligne autonome.
-- **Données statistiques :** une recommandation affichée n'est pas une vente. Le serveur enregistre la liste des vins présentés et uniquement les choix que le personnel confirme ; il ne décrémente **jamais automatiquement** le stock.
+- **Données statistiques :** une proposition est comptabilisée dès son **calcul côté serveur**, avant toute confirmation de réception ou d'affichage par le navigateur. Un appel interrompu ou une sélection changée pendant la réponse peut donc compter comme proposition calculée sans avoir été vue. Les chiffres ne sont **pas** des impressions garanties, ni des ventes. Seuls les choix explicitement confirmés sont enregistrés comme choix ; le stock n'est **jamais automatiquement** décrémenté.
 - **Architecture :** mono-instance SQLite. Passer à PostgreSQL et aux contrôles de tenant côté base pour un SaaS distribué et des opérations multi-processus.
 - **Conformité :** cette version ne constitue pas une validation RGPD/CNIL. Les comptes et les événements de service peuvent identifier des salariés. Avant exploitation publique : information, base légale, gestion des droits, durées de conservation, contrat de sous-traitance si applicable, durcissement réseau, surveillance, gestion opérationnelle des sauvegardes chiffrées, déploiement effectif du MFA et procédure de récupération d'un compte propriétaire.
 
