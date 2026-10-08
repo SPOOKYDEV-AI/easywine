@@ -1,7 +1,7 @@
 {
   "version": 1,
   "runner": "node-web",
-  "task": "audit",
+  "task": "smoke",
   "pipeline": {
     "install": "node -e \"const [major,minor]=process.versions.node.split('.').map(Number);if(major<22||(major===22&&minor<16)){console.error('EasyWine requires Node.js 22.16+');process.exit(1)}\"",
     "lint": [
