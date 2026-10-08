@@ -22,5 +22,5 @@ INSERT INTO stock_movements
  (id,restaurant_id,wine_id,actor_id,delta,before_stock,after_stock,reason,note,request_key,created_at)
 SELECT 'baseline-'||id,restaurant_id,id,NULL,stock,0,stock,'baseline',
        'Solde connu lors de la migration v3 ; mouvements antérieurs non disponibles.',
-       NULL,updated_at
+       NULL,strftime('%Y-%m-%dT%H:%M:%fZ','now')
 FROM wines;
