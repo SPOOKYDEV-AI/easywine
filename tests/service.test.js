@@ -25,11 +25,11 @@ test('migrate an existing v1 SQLite database without losing restaurant records',
  const historical=join(folder,'recovered-v1.sqlite');
  assert.equal(restoreToNewPath(file,historical).version,1);
  const restored=openDatabase(historical);
- assert.equal(restored.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
+ assert.equal(restored.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,4);
  assert.equal(restored.prepare('SELECT name FROM restaurants WHERE slug=?').get('legacy').name,'Restaurant historique');
  restored.close();
  const upgraded=openDatabase(file);
- assert.equal(upgraded.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,3);
+ assert.equal(upgraded.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,4);
  assert.equal(upgraded.prepare('SELECT name FROM restaurants WHERE slug=?').get('legacy').name,'Restaurant historique');
  assert.ok(upgraded.prepare("SELECT name FROM sqlite_master WHERE name='service_choices'").get());
  upgraded.close();
