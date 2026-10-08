@@ -193,3 +193,58 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 
 /* Result status text is only 11.5px; ensure full small-text contrast. */
 .status{color:#76553f}
+
+
+/* Signature motion — indeterminate, no fake progress and no forced minimum delay.
+   SVG is packaged with the app; no font, library, image or network dependency. */
+.boot-content{width:min(340px,100%)}
+.boot-glass{display:grid;place-items:center;margin:1.2rem 0 .65rem}
+.boot-brand{font-family:Georgia,serif;letter-spacing:-.045em;font-weight:600}
+.boot-accent{display:block;width:30px;height:1px;background:#b99981;margin:1.5rem auto 0}
+.wine-glass{display:block;flex:0 0 auto;overflow:visible}
+.wine-glass--hero{width:112px;height:154px}
+.wine-glass--inline{width:62px;height:85px}
+.wine-glass--mini{width:18px;height:24px}
+.wine-glass__liquid{clip-path:inset(100% 0 0 0);animation:wine-pour 1.28s cubic-bezier(.2,.65,.23,1) both}
+.wine-glass__surface{animation:wine-surface 1.3s ease-out both}
+.wine-glass__outline{stroke:#927871}
+.wine-glass__highlight{opacity:.58}
+@keyframes wine-pour{0%{clip-path:inset(100% 0 0 0)}100%{clip-path:inset(0 0 0 0)}}
+@keyframes wine-surface{0%,58%{opacity:0}100%{opacity:1}}
+.view-loading{gap:.5rem;min-height:205px}
+.view-loading p{margin:.3rem 0 0;color:#605359;max-width:27ch;font-size:.85rem}
+.button.is-busy::before{content:none}
+.button.is-busy{display:inline-flex;align-items:center;justify-content:center;gap:.45rem}
+.button.is-busy .wine-glass__liquid{animation-duration:.7s}
+.result-card{animation:lux-result-in .25s cubic-bezier(.22,.65,.3,1) both}
+@keyframes lux-result-in{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+#notification{
+ display:flex;align-items:center;gap:.75rem;
+ color:#352e30;background:#fff;border:1px solid #e6d8d0;
+ border-left:3px solid #8b5260;padding:.6rem .65rem .6rem .9rem;
+ border-radius:13px;box-shadow:0 14px 45px #321e2930;
+ width:min(410px,calc(100vw - 1.5rem));max-width:none;
+ animation:lux-toast-in .22s ease-out both;
+}
+#notification[data-type="error"]{border-left-color:#9a3740}
+#notification[data-type="info"]{border-left-color:#967454}
+.feedback-symbol{
+ width:28px;height:28px;display:grid;place-items:center;flex:0 0 28px;
+ border-radius:50%;background:#f1e5e5;color:#682c3c;font-weight:800;font-size:.88rem;
+}
+#notification[data-type="error"] .feedback-symbol{background:#f9e8e6;color:#8f2835}
+.feedback-copy{flex:1;min-width:0;font-size:.85rem;line-height:1.42;font-weight:600;overflow-wrap:anywhere}
+.feedback-dismiss{border:0;background:transparent;color:#62555a;font-size:1.35rem;width:44px;height:44px;min-width:44px;display:grid;place-items:center;border-radius:9px;line-height:1}
+.feedback-dismiss:hover{background:#f7f1ee}
+@keyframes lux-toast-in{from{opacity:.2;transform:translateY(-5px)}to{opacity:1;transform:translateY(0)}}
+.result-confirmation{display:flex;align-items:center;gap:.45rem;margin:0 0 1rem;color:#594d52;font-size:.82rem;font-weight:700}
+.result-confirmation::before{content:"✓";width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#f1e5e5;color:#682c3c;font-weight:800}
+@media(max-width:680px){
+ #notification{top:auto;left:.75rem;right:.75rem;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:auto}
+ .wine-glass--hero{width:95px;height:132px}
+ .boot-glass{margin:.9rem 0 .5rem}
+}
+@media(prefers-reduced-motion:reduce){
+ .wine-glass__liquid,.wine-glass__surface,.result-card,#notification{animation:none!important}
+ .wine-glass__liquid{clip-path:none}
+}
