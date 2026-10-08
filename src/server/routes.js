@@ -7,16 +7,28 @@ import {HttpError,fail,object,text,number,wineInput,dishInput,preferences} from 
 import {parseWineCsv,signature} from './import-csv.js';
 import {recordSuggestions,selectWine,wineStatistics} from './service-history.js';
 
+
 const loginAttempts=new Map();
-function checkRate(ip){
+let concurrentLogins=0;
+const MAX_CONCURRENT_LOGINS=8;
+const accountKey=(slug,email)=>'account:'+slug+':'+email;
+const ipKey=ip=>'source:'+ip;
+function checkRate(ip,slug,email){
   const time=Date.now();
   for(const [key,value] of loginAttempts)if(value.until<time)loginAttempts.delete(key);
-  const item=loginAttempts.get(ip);
-  if(item&&item.count>=10)fail('Trop de tentatives. Réessayez plus tard.',429);
+  const account=loginAttempts.get(accountKey(slug,email));
+  const source=loginAttempts.get(ipKey(ip));
+  if((account&&account.count>=10)||(source&&source.count>=200))
+    fail('Trop de tentatives. Réessayez plus tard.',429);
+  if(concurrentLogins>=MAX_CONCURRENT_LOGINS)
+    fail('Trop de connexions simultanées. Réessayez.',429);
 }
-function countFailed(ip){
-  const time=Date.now(),v=loginAttempts.get(ip);
-  loginAttempts.set(ip,{count:(v&&v.until>time?v.count:0)+1,until:time+15*60*1000});
+function countFailed(ip,slug,email){
+  const time=Date.now();
+  for(const key of [accountKey(slug,email),ipKey(ip)]){
+    const v=loginAttempts.get(key);
+    loginAttempts.set(key,{count:(v&&v.until>time?v.count:0)+1,until:time+15*60*1000});
+  }
 }
 function assertRole(user,...roles){
   if(!roles.includes(user.role))fail('Accès réservé au responsable.',403);
@@ -65,10 +77,13 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     const email=text(o.email,'E-mail',254).toLowerCase();
     if(!/^[a-z0-9-]+$/.test(slug)||!/^\S+@\S+\.\S+$/.test(email)||typeof o.password!=='string'||o.password.length>1024)
       fail('Identifiants invalides.');
-    checkRate(ip);
-    const session=signIn(db,{slug,email,password:o.password});
-    if(!session){countFailed(ip);fail('Identifiants incorrects.',401);}
-    loginAttempts.delete(ip);
+    checkRate(ip,slug,email);
+    concurrentLogins++;
+    let session;
+    try{session=await signIn(db,{slug,email,password:o.password});}
+    finally{concurrentLogins--;}
+    if(!session){countFailed(ip,slug,email);fail('Identifiants incorrects.',401);}
+    loginAttempts.delete(accountKey(slug,email));
     return {body:{user:session.user},headers:{'Set-Cookie':cookieFor(session.token,secure)}};
   }
   if(!user)fail('Authentification nécessaire.',401);
