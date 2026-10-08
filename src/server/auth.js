@@ -1,10 +1,13 @@
 
-import {randomBytes,scryptSync,createHash,timingSafeEqual} from 'node:crypto';
+import {randomBytes,scrypt,scryptSync,createHash,timingSafeEqual} from 'node:crypto';
+import {promisify} from 'node:util';
 import {id,now,transaction} from './db.js';
 
 const SESSION_MS=12*60*60*1000;
 const hashToken=token=>createHash('sha256').update(token).digest('hex');
 const makeHash=(password,salt)=>scryptSync(password,Buffer.from(salt,'hex'),64).toString('hex');
+const scryptAsync=promisify(scrypt);
+const makeHashAsync=async(password,salt)=>(await scryptAsync(password,Buffer.from(salt,'hex'),64)).toString('hex');
 const dummySalt='00112233445566778899aabbccddeeff';
 const dummyHash=makeHash('unknown-password',dummySalt);
 
@@ -27,11 +30,16 @@ export function createUser(db,{restaurantId,name,email,role,password}){
     .run(userId,restaurantId,email.trim().toLowerCase(),name,role,secret.salt,secret.passwordHash,now());
   return userId;
 }
-export function signIn(db,{slug,email,password}){
+export async function signIn(db,{slug,email,password}){
   const user=db.prepare(
     'SELECT u.*,r.slug,r.name AS restaurant_name FROM users u JOIN restaurants r ON r.id=u.restaurant_id WHERE r.slug=? AND u.email=? AND u.active=1'
   ).get(slug,email.trim());
-  if(!verifyPassword(user,password))return null;
+  // Unknown accounts take the same expensive derivation path as real accounts.
+  // Async scrypt prevents login attempts from blocking all service requests.
+  if(typeof password!=='string'||Buffer.byteLength(password)>1024)return null;
+  const actual=await makeHashAsync(password,user?.salt??dummySalt);
+  const expected=user?.password_hash??dummyHash;
+  if(!timingSafeEqual(Buffer.from(actual,'hex'),Buffer.from(expected,'hex'))||!user)return null;
   const token=randomBytes(32).toString('base64url');
   const expiresAt=new Date(Date.now()+SESSION_MS).toISOString();
   transaction(db,()=>{
