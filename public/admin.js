@@ -8,19 +8,30 @@ function edit(title,build,save){
  byId('editor-title').textContent=title;
  const fields=byId('editor-fields');fields.replaceChildren();
  build(fields);
+ const close=()=>{if(form.dataset.saving!=='true')dialog.close();};
  form.onsubmit=handle(async event=>{
   event.preventDefault();
+  if(form.dataset.saving==='true')return;
   const submit=form.querySelector('button[type=submit]');
-  await withBusy(submit,async()=>{
-   const data=new FormData(form);
-   const confirmation=await save(data);
-   dialog.close();
-   notice(typeof confirmation==='string'?confirmation:'Modifications enregistrées.');
-  },'Enregistrement…');
+  form.dataset.saving='true';
+  dialog.setAttribute('aria-busy','true');
+  try{
+   await withBusy(submit,async()=>{
+    const data=new FormData(form);
+    const confirmation=await save(data);
+    dialog.close();
+    notice(typeof confirmation==='string'?confirmation:'Modifications enregistrées.');
+   },'Enregistrement…');
+  }finally{
+   delete form.dataset.saving;
+   dialog.removeAttribute('aria-busy');
+  }
  });
+ dialog.oncancel=event=>{if(form.dataset.saving==='true')event.preventDefault();};
  dialog.showModal();
- byId('close-editor').onclick=()=>dialog.close();
- byId('cancel-editor').onclick=()=>dialog.close();
+ (fields.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled])')||form.querySelector('button')).focus({preventScroll:true});
+ byId('close-editor').onclick=close;
+ byId('cancel-editor').onclick=close;
 }
 function check(parent,name,caption,checked){
  const c=e('input',{name,type:'checkbox',checked});
