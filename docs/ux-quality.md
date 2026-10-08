@@ -64,7 +64,8 @@ Références de conception : [MDN History API](https://developer.mozilla.org/en-
 6. `tests/browser-scale.mjs` : génération synthétique de 2 400 vins, mesure de la connexion avec chargement de cave, rendu initial limité à 80 lignes, expansion à 160, recherche sur les 2 400, contrôle DOM/overflow mobile. Produit `ux-scale.json`, sans donnée restaurant réelle.
 7. `tests/browser-mobile-nav.mjs` : test réel du menu mobile, des rôles, du panneau Plus, du clavier Échap, du retour du focus et des cibles tactiles.
 8. `tests/browser-network-history.mjs` : navigateur Retour/Avancer, serveur inaccessible, réseau simulé hors ligne, contrôle manuel de reconnexion et réponse tardive de l'ancien établissement. `tests/navigation.test.js` : routes autorisées.
-9. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
+9. `tests/browser-a11y.mjs` : scans axe-core WCAG 2.2 A/AA sur les états métier et mobile ; la CI échoue pour toute violation détectée. Aucune modification CSP ou chargement du scanner en production.
+10. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
 
 ### Indicateurs
 
@@ -75,6 +76,14 @@ Références de conception : [MDN History API](https://developer.mozilla.org/en-
 - **Résilience** : pas de spinner permanent, aucun double envoi accidentel, aucun rendu de résultats périmés.
 - **Accessibilité** : vérifier WCAG 2.2 AA, notamment **4.1.3 messages de statut**, **2.4.11 focus non masqué**, **2.5.8 cible d'au moins 24×24 CSS px ou exception d'espacement**. EasyWine vise ≥44 px sur ses contrôles principaux (plus confortable que le minimum) :
   https://www.w3.org/TR/WCAG22/
+
+### Audit automatique WCAG 2.2 A/AA
+
+La CI injecte **axe-core 4.14.0 exclusivement depuis le contexte de test Chrome**, sans désactiver ni affaiblir la Content Security Policy (CSP) de l'application. Elle exige **zéro violation automatique WCAG A/AA** dans les états simulés : connexion, première utilisation, cave vide/remplie, formulaire vin, journal de stock, carte, équipe, historique, statistiques, recommandations, compte, conseiller mobile et navigation « Plus ».
+
+Le premier audit a révélé des contrastes insuffisants sur six écrans (textes secondaires et navigation) et un libellé de recommandation à 4,39:1. La palette a été corrigée sans dégrader les contrastes de la marque sur fond bordeaux. Le rapport JSON `test-artifacts/a11y-wcag22-lab.json` documente règles réussies, violations et vérifications incomplètes.
+
+**Limites :** un rapport axe-core vert ne constitue pas une déclaration de conformité WCAG 2.2 AA. Il reste indispensable de parcourir toutes les vues et opérations au clavier, avec lecteurs d'écran, zoom/reflow à 200–400 %, contraste en conditions lumineuses, pièges de focus, et de valider le français annoncé et les états dynamiques réels sur les périphériques cibles. Voir [W3C WCAG 2.2](https://www.w3.org/TR/WCAG22/) et [Playwright accessibility testing](https://playwright.dev/docs/accessibility-testing).
 
 ### Interprétation honnête
 

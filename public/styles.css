@@ -176,3 +176,20 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  .network-status span{flex:1 1 150px}
  .network-status .subtle-button{flex:0 0 auto}
 }
+
+/* WCAG 2.2 A/AA audit: body-sized text maintains >=4.5:1 on ivory/white.
+   Intentional stronger ink colors, keeping the established burgundy/gold palette. */
+.muted{color:#605359}
+.eyebrow,.aside-overline,.small-label{color:#675254}
+.form-hint{color:#605359}
+.topbar{color:#605359}
+.page-header p{color:#605359}
+.results-placeholder{color:#605359}
+.hint{color:#605359}
+.empty{color:#605359}
+.nav-link{color:#594d52}
+.item-row p{color:#605359}
+.mobile-nav button{color:#605359}
+
+/* Result status text is only 11.5px; ensure full small-text contrast. */
+.status{color:#76553f}
