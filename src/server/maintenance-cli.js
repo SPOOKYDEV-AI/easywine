@@ -4,6 +4,7 @@ import {pathToFileURL} from 'node:url';
 import {openDatabase} from './db.js';
 import {createBackup,restoreToNewPath} from './maintenance.js';
 import {loadBackupKey,createEncryptedBackup,restoreEncryptedBackup} from './encrypted-backup.js';
+import {replicateEncryptedBackup} from './backup-replica.js';
 import {pruneServiceHistory} from './service-history.js';
 
 export async function main(args=process.argv.slice(2)){
@@ -24,6 +25,11 @@ export async function main(args=process.argv.slice(2)){
     const database=openDatabase();
     try{
       const result=await createEncryptedBackup(database,resolve(directory),key);
+      const replicaDirectory=option('--replica-dir');
+      if(replicaDirectory){
+        const replica=await replicateEncryptedBackup(result.path,resolve(replicaDirectory));
+        console.log('Copie secondaire vérifiée : '+replica.path+' (SHA-256 '+replica.sha256+')');
+      }
       console.log('Sauvegarde chiffrée et vérifiée : '+result.name+' ('+result.pages+' pages)');
     }finally{database.close();key.fill(0);}
   }else if(command==='restore-encrypted'){
