@@ -13,6 +13,10 @@
 </head>
 <body>
  <div id="notification" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+ <div id="network-status" class="network-status" role="status" aria-live="polite" aria-atomic="true" hidden>
+  <span id="network-status-text"></span>
+  <button id="network-retry" type="button" class="subtle-button">Vérifier la connexion</button>
+ </div>
  <div id="boot" class="boot-screen" role="status" aria-live="polite" aria-label="Chargement d’EasyWine">
   <div class="boot-content">
    <span class="boot-brand"><span class="wine-mark" aria-hidden="true">◈</span> easywine<span class="wordmark-dot">.</span></span>
