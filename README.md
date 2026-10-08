@@ -11,6 +11,7 @@ EasyWine aide le personnel de salle à recommander rapidement des bouteilles **r
 - Base SQLite transactionnelle avec WAL, migrations versionnées, sauvegardes vérifiées, contrôle de version optimiste et journal d'audit.
 - Révocation immédiate des comptes, changement de mot de passe et invalidation des sessions.
 - Exclusions d'accords configurables par plat, suivis des propositions affichées et des vins sélectionnés.
+- Mouvements de stock justifiés et historisés (réapprovisionnement, consommation, perte, correction), protection contre les retries et les doubles déductions.
 - Algorithme déterministe, sans API payante et sans promesse de sommellerie automatisée.
 
 ## Pré-requis
@@ -69,6 +70,35 @@ En-têtes obligatoires :
 
 En-têtes optionnels : appellation, vintage, region, grapes, tags (séparés par |), by_glass, active. Les profils body / acidity / tannin / aromatic doivent être saisis sur une échelle 1–5 : le moteur ne les invente pas. price_eur est exprimé en euros (ex. 85,50). Les doublons sont contrôlés par producteur + cuvée + millésime dans un même établissement. Un lot invalide est entièrement rejeté.
 
+
+## Sauvegardes chiffrées (AES-256-GCM)
+
+Préférer les sauvegardes `.ewb` authentifiées à la sortie en clair : elles se vérifient avant toute restauration. Les sauvegardes utilisent le moteur SQLite (WAL inclus), puis un chiffrement AES-256-GCM avec IV aléatoire par archive. Le mot de passe des utilisateurs **ne remplace jamais** la clé de sauvegarde.
+
+Créer une clé aléatoire de 32 octets dans un fichier privé **hors dépôt Git et hors répertoire public** (une seule fois) :
+
+    node -e "const fs=require('node:fs'),c=require('node:crypto');fs.writeFileSync(process.argv[1],c.randomBytes(32).toString('hex')+'\\n',{flag:'wx',mode:0o600})" /dossier-prive/easywine-backup.key
+
+Sous Unix, le fichier doit appartenir au compte de service et être lisible uniquement par lui (`chmod 600`). Sous Windows, **contrôler réellement les ACL NTFS** : le mode 0600 Node.js ne garantit pas l'isolement. Stocker une copie de la clé dans un gestionnaire de secrets distinct des sauvegardes, avec une procédure de récupération testée.
+
+Configurer le chemin de clé dans `EASYWINE_BACKUP_KEY_FILE` (ou une clé hexadécimale de 64 caractères dans `EASYWINE_BACKUP_KEY`, **jamais les deux**). Puis :
+
+    npm run backup -- backup-encrypted --directory /volume/backup-easywine
+
+Restaurer uniquement vers un nouveau fichier, après récupération de la clé :
+
+    npm run backup -- restore-encrypted --from /volume/backup-easywine/easywine-ARCHIVE.ewb --to /volume/recovery/new.sqlite
+
+La commande refuse les clés incorrectes, les archives modifiées et les destinations existantes. Le nouveau fichier n'est jamais publié avant la vérification SQLite. Pour la bascule, arrêter le service, pointer `EASYWINE_DB` vers cette nouvelle base puis redémarrer ; conserver l'ancienne intacte en cas de rollback.
+
+**Limites d'exploitation :** SQLite produit temporairement une copie non chiffrée dans un répertoire privé du disque temporaire pendant les opérations de sauvegarde/restauration, effacée en cas de sortie normale mais potentiellement récupérable après crash. Choisir un système de fichiers temporaire protégé/chiffré ou un disque chiffré. Les sauvegardes ne sont pas encore planifiées ni externalisées automatiquement ; configurer le planificateur du serveur et la copie hors site avec les accès minimums, la rétention, les alertes et des exercices périodiques de restauration. Une perte de clé rend les archives chiffrées irrécupérables.
+
+## Gestion des stocks
+
+Depuis **Ma cave → Mouvements**, chaque entrée/sortie impose une variation entière, un motif et une justification. Le serveur empêche le stock négatif, les conflits de modification et la répétition d'un mouvement déjà confirmé (clé d'idempotence). Les importations CSV et le stock initial créent aussi des lignes de traçabilité. Lors de la migration des anciennes bases (v2 → v3), chaque vin reçoit une ligne `baseline` indiquant que les mouvements antérieurs sont inconnus, et **pas** une vente fictive.
+
+Le clic « Le client a choisi ce vin » **ne modifie pas le stock** : c'est un choix de service, pas une confirmation de vente POS. Les stocks doivent être ajustés explicitement ou, plus tard, via un connecteur caisse validé.
+
 ## Sauvegardes, restauration et conservation
 
 Créer une sauvegarde cohérente et vérifiée de SQLite, y compris en mode WAL :
@@ -81,7 +111,7 @@ Restaurer **vers un nouveau fichier**, sans écraser la base en cours d'utilisat
 
 Sous PowerShell, placez les chemins entre guillemets, par exemple `npm run backup -- backup --directory "C:\\EasyWine\\backups"`. Pour basculer : arrêter le service, modifier `EASYWINE_DB` pour pointer vers la nouvelle base puis redémarrer. Conserver l'ancienne base intacte pour le rollback. Les sauvegardes doivent être conservées hors du serveur, protégées et restaurées lors d'exercices réguliers. La commande ne remplace pas une vraie politique de sauvegarde externalisée.
 
-La base est migrée transactionnellement de v1 à v2 au démarrage. Les versions inconnues provoquent un refus de démarrage (pas de migration destructive implicite).
+La base est migrée transactionnellement de v1 à v2 puis de v2 à v3 au démarrage. Les versions inconnues provoquent un refus de démarrage (pas de migration destructive implicite).
 
 Purger l'historique de service au-delà d'une durée définie par la politique de conservation du restaurant (exemple 180 jours) :
 
@@ -104,7 +134,7 @@ Les tests couvrent également les imports de cave et les contraintes du moteur e
 - **Usage hors Internet :** un serveur EasyWine accessible sur le réseau local peut continuer à fonctionner sans Internet ; l'application ne fonctionne pas lorsque sa propre API est inaccessible. Ce n'est **pas** une PWA hors-ligne autonome.
 - **Données statistiques :** une recommandation affichée n'est pas une vente. Le serveur enregistre la liste des vins présentés et uniquement les choix que le personnel confirme ; il ne décrémente **jamais automatiquement** le stock.
 - **Architecture :** mono-instance SQLite. Passer à PostgreSQL et aux contrôles de tenant côté base pour un SaaS distribué et des opérations multi-processus.
-- **Conformité :** cette version ne constitue pas une validation RGPD/CNIL. Les comptes et les événements de service peuvent identifier des salariés. Avant exploitation publique : information, base légale, gestion des droits, durées de conservation, contrat de sous-traitance si applicable, durcissement réseau, surveillance, chiffrement des sauvegardes, MFA/SSO et procédure de récupération d'un compte propriétaire.
+- **Conformité :** cette version ne constitue pas une validation RGPD/CNIL. Les comptes et les événements de service peuvent identifier des salariés. Avant exploitation publique : information, base légale, gestion des droits, durées de conservation, contrat de sous-traitance si applicable, durcissement réseau, surveillance, gestion opérationnelle des sauvegardes chiffrées, MFA/SSO et procédure de récupération d'un compte propriétaire.
 
 ## Structure
 
@@ -113,6 +143,7 @@ Les tests couvrent également les imports de cave et les contraintes du moteur e
 - public — application web tactile, modules JavaScript et style
 - tests — moteur et intégration HTTP
 - src/server/migrations — évolutions atomiques du schéma SQLite
-- src/server/maintenance* — sauvegarde, restauration et conservation
+- src/server/maintenance* et encrypted-backup.js — sauvegarde, chiffrement, restauration et conservation
+- src/server/stock-ledger.js — historique des mouvements de stock et idempotence
 
 Les contributions arrivent sur branche et pull request. main reste la référence stable.
