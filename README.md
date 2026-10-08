@@ -161,6 +161,12 @@ Envoyer ensuite **dans le dépôt de contrôle privé**, et non dans EasyWine, u
 
 L'agent répond sur l'issue, écrit les résultats synthétiques dans la branche `sandbox-results` du dépôt privé, et place les journaux/captures dans une Release privée temporaire. Préférer un commit SHA figé pour une certification reproductible. N'utiliser que des branches **revues et dignes de confiance** : les tests exécutent réellement du code sur le PC Windows. Ne jamais inclure de secrets ou données de patients/clients dans l'issue ou dans les captures publiées. Pour des données sensibles, utiliser `"publish": false` et inspecter localement les artefacts.
 
+## Qualité de l'expérience et performance
+
+Le parcours de service dispose désormais d'un écran de démarrage, de chargements contextualisés, d'une reprise après erreur réseau, de formulaires protégés contre les doubles soumissions et d'une navigation sécurisée contre les réponses tardives. La cave peut afficher de grands catalogues par lots sans créer des milliers de nœuds DOM immédiatement.
+
+Le protocole complet (parcours selon les rôles, recommandations WCAG 2.2, métriques Web Vitals, tests de charge, preuves et limites) se trouve dans **[docs/ux-quality.md](docs/ux-quality.md)**. Les mesures Chrome restent des mesures de laboratoire et ne remplacent pas un suivi de terrain sur appareils et réseaux réels.
+
 ## Tests
 
     npm test
