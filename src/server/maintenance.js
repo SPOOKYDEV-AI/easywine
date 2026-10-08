@@ -4,6 +4,7 @@ import {mkdirSync,openSync,closeSync,unlinkSync,renameSync,copyFileSync,linkSync
   chmodSync,fsyncSync,statSync} from 'node:fs';
 import {dirname,join,resolve,basename} from 'node:path';
 import {randomUUID} from 'node:crypto';
+import {verifyStockLedger} from './stock-ledger.js';
 
 const ensureFolder=folder=>mkdirSync(folder,{recursive:true,mode:0o700});
 const randomName=()=>new Date().toISOString().replace(/[:.]/g,'-')+'-'+randomUUID();
@@ -26,6 +27,7 @@ export function verifySnapshot(filename){
     if(references.length)throw Error('SQLite foreign_key_check failed: '+references.length);
     const version=db.prepare('SELECT MAX(version) AS version FROM schema_version').get()?.version;
     if(version!==3)throw Error('Unexpected database schema version: '+version);
+    verifyStockLedger(db);
     return {version,restaurants:db.prepare('SELECT COUNT(*) AS n FROM restaurants').get().n};
   }finally{db.close();}
 }
