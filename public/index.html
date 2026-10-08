@@ -32,6 +32,14 @@
     <button class="button primary" type="submit">Accéder à EasyWine <span aria-hidden="true">→</span></button>
     <p class="form-hint">Accès réservé aux équipes autorisées par l'établissement.</p>
    </form>
+   <form id="mfa-form" class="form-card" hidden>
+    <p class="eyebrow">VALIDATION DE SÉCURITÉ</p>
+    <h2>Votre second facteur.</h2>
+    <p class="muted">Saisissez le code à 6 chiffres de votre application d'authentification, ou un code de secours inutilisé.</p>
+    <label>Code de sécurité<input name="code" autocomplete="one-time-code" inputmode="text" maxlength="64" required placeholder="000000"></label>
+    <button class="button primary" type="submit">Terminer la connexion →</button>
+    <button class="button secondary" id="mfa-cancel" type="button">Retour à la connexion</button>
+   </form>
   </div>
  </div>
  <div id="shell" class="shell" hidden>
