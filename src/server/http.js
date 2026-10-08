@@ -11,6 +11,8 @@ const assets={
   '/stats.js':['stats.js','text/javascript; charset=utf-8'],
   '/admin.js':['admin.js','text/javascript; charset=utf-8'],
   '/account.js':['account.js','text/javascript; charset=utf-8'],
+  '/navigation.js':['navigation.js','text/javascript; charset=utf-8'],
+  '/network-status.js':['network-status.js','text/javascript; charset=utf-8'],
   '/styles.css':['styles.css','text/css; charset=utf-8'],
   '/favicon.svg':['favicon.svg','image/svg+xml']
 };

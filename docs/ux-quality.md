@@ -28,6 +28,17 @@ Un choix déclaré n'est **jamais** une vente encaissée. Les décisions de stoc
 - Les commandes tactiles doivent rester utilisables avec une seule main ; au plus cinq destinations principales. Fondements : [Android Material navigation](https://developer.android.com/design/ui/mobile/guides/layout-and-content/layout-and-nav-patterns) et [Apple HIG tab bars](https://developer.apple.com/design/human-interface-guidelines/tab-bars). Ce choix est une hypothèse ergonomique à confronter aux vrais utilisateurs, pas une validation de leur comportement.
 - Les captures `mobile-navigation.png` et le scénario `tests/browser-mobile-nav.mjs` vérifient la taille physique des cibles, la visibilité du menu, les permissions et le repositionnement après scroll.
 
+## Parcours réseau, historique et changement d'établissement
+
+- Les rubriques utilisent une liste de routes publiques sans identifiant client ni secret. `history.pushState` / `popstate` restaurent les rubriques avec Retour et Avancer, sans recharger la page ni faire passer la vérification d'authentification côté client pour un contrôle de sécurité.
+- Après 30 secondes depuis la dernière synchronisation réussie du catalogue, revenir dans Conseiller/Cave/Carte recharge cave et carte. Il ne s'agit **pas** d'un synchroniseur en temps réel ; le moteur de recommandation et les écritures restent autoritaires côté serveur.
+- La déconnexion incrémente la génération de session ; une ancienne requête peut encore arriver mais n'a plus le droit de remplir le catalogue actuel, d'afficher un toast réseau hors contexte ou de déconnecter le nouvel utilisateur.
+- Les événements `online` et `offline` ne sont que des indices. Seule une requête HTTP parvient à établir l'accessibilité d'EasyWine, et un `200` de `/api/session` ne garantit pas les performances de l'ensemble des API.
+- Une tentative d'écriture ayant dépassé le délai réseau **n'est jamais automatiquement rejouée**. Le serveur peut avoir validé la transaction : vérifier son état via les écrans appropriés avant toute nouvelle tentative.
+- Les routes `#/service`, `#/wines`, etc. ne stockent aucune donnée personnelle, propriétaire, ou référence sensible ; les requêtes API restent en `no-store`.
+
+Références de conception : [MDN History API](https://developer.mozilla.org/en-US/docs/Web/API/History_API/Working_with_the_History_API), [MDN événements réseau](https://developer.mozilla.org/en-US/docs/Web/API/Window/online_event), [web.dev INP](https://web.dev/articles/inp).
+
 ## Comportements attendus dans chaque état
 
 - **Premier chargement** : logo lisible et statut annoncé aux lecteurs d'écran, plutôt qu'une interface blanche avant la résolution de session.
@@ -52,7 +63,8 @@ Un choix déclaré n'est **jamais** une vente encaissée. Les décisions de stoc
 5. `tests/browser-ux.mjs` couvre également la fermeture `Escape` pendant une sauvegarde en cours, le focus clavier initial des formulaires et l'absence de double requête de modification.
 6. `tests/browser-scale.mjs` : génération synthétique de 2 400 vins, mesure de la connexion avec chargement de cave, rendu initial limité à 80 lignes, expansion à 160, recherche sur les 2 400, contrôle DOM/overflow mobile. Produit `ux-scale.json`, sans donnée restaurant réelle.
 7. `tests/browser-mobile-nav.mjs` : test réel du menu mobile, des rôles, du panneau Plus, du clavier Échap, du retour du focus et des cibles tactiles.
-8. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
+8. `tests/browser-network-history.mjs` : navigateur Retour/Avancer, serveur inaccessible, réseau simulé hors ligne, contrôle manuel de reconnexion et réponse tardive de l'ancien établissement. `tests/navigation.test.js` : routes autorisées.
+9. `SPOOKY Sandbox` : profil `.sandbox/profile.json`, Windows réel, trois tailles d'écran (390×844, 768×1024, 1440×900), HTTP, erreurs navigateur et débordements, sans données de clients ni dossier local d'exploitation.
 
 ### Indicateurs
 

@@ -55,6 +55,8 @@ jobs:
         run: node tests/browser-onboarding.mjs
       - name: Verify mobile navigation and accessibility
         run: node tests/browser-mobile-nav.mjs
+      - name: Verify network resilience and browser history
+        run: node tests/browser-network-history.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
