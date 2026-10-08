@@ -50,3 +50,10 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .stock-movement-list{max-height:240px;overflow:auto;border:1px solid #efe4df;border-radius:12px;margin:1rem 0;padding:.25rem .75rem}
 .stock-movement-row{padding:.7rem .25rem;border-bottom:1px solid #f1e9e5;font-size:.85rem}
 .stock-movement-row:last-child{border-bottom:0}.stock-movement-row p{margin:.25rem 0 0}
+
+.account-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:1rem;align-items:start}
+.account-grid .form-card{width:100%}
+.mfa-setup{display:flex;flex-direction:column;gap:.8rem}
+.secret-value{padding:1rem;background:#f7f2ed;border-radius:10px;font-size:1.05rem;letter-spacing:.09em;overflow-wrap:anywhere;user-select:all}
+.recovery-codes{font:600 .88rem/1.85 ui-monospace,Consolas,monospace;background:#f8f5f0;border:1px solid #eaddd2;border-radius:10px;padding:1rem;white-space:pre-wrap;overflow-wrap:anywhere;user-select:all}
+@media(max-width:900px){.account-grid{grid-template-columns:1fr}}
