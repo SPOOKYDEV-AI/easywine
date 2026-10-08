@@ -44,5 +44,8 @@ test('restaurant exclusions are versioned, tenant scoped, and respect the classi
  assert.equal(result.result.recommendations.length,0);
  assert.equal((await req('PUT','/api/dishes/'+did+'/blocks',{wineIds:[],expectedVersion:2},a)).status,409);
  assert.equal((await req('PUT','/api/dishes/'+did+'/blocks',{wineIds:[],expectedVersion:3},a)).status,200);
- assert.equal((await req('POST','/api/recommend',{dishId:did},a)).result.recommendations.length,1);
+ const restored=await req('POST','/api/recommend',{dishId:did},a);
+ assert.equal(restored.result.classic.available,true);
+ assert.equal(restored.result.classic.blocked,false);
+ assert.equal(restored.result.recommendations.length,0); // Never duplicate the displayed classic
 });
