@@ -263,7 +263,9 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     const results=recommend({dish,wines:wines.filter(w=>w.id!==classic?.id),blockedWineIds:blocked,styles:p.styles,color:p.color,
       minPriceCents:p.minPriceCents,maxPriceCents:p.maxPriceCents,
       diversifyPrices:p.minPriceCents===null&&p.maxPriceCents===null});
-    return {body:{dish, classic:classic?{wine:classic,available:classic.active&&classic.stock>0&&!blocked.includes(classic.id),blocked:blocked.includes(classic.id)}:null,
+    const classicInfo=classic?{wine:classic,available:classic.active&&classic.stock>0&&!blocked.includes(classic.id),blocked:blocked.includes(classic.id)}:null;
+    const sessionId=recordSuggestions(db,user,dish,classicInfo,results);
+    return {body:{sessionId,dish,classic:classicInfo,
       recommendations:results,explanation:'Compatibilité indicative calculée sur les profils renseignés par le restaurant, sans recours au prix comme critère de qualité.'}};
   }
   if(method==='GET'&&path==='/api/audit'){
