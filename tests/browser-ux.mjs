@@ -129,7 +129,7 @@ try{
  }));
  assert.equal(desktop.maxHorizontalOverflow,0);
  await page.setViewportSize({width:390,height:844});
- await page.locator('#menu [data-view=wines]').click();
+ await page.locator('#mobile-nav [data-mobile-view=wines]').click();
  await page.getByText('Réserve de test').waitFor();
  const mobile=await page.evaluate(()=>({
   horizontalOverflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),
