@@ -67,7 +67,7 @@ async function view(name){
  target.setAttribute('aria-busy','true');
  target.replaceChildren(loadingState(messages[name]||'Chargement…'));
  try{
-  if(name==='service')renderService(staging,store);
+  if(name==='service')renderService(staging,store,{role:currentUser.role,onNavigate:view});
   else if(name==='wines')renderWines(staging,store,refresh);
   else if(name==='dishes')renderDishes(staging,store,refresh);
   else if(name==='history')await renderHistory(staging);
