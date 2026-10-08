@@ -44,3 +44,5 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 
 @media(max-width:1020px){.service-grid>.panel:last-child{scroll-margin-top:5rem}}
 @media(max-width:680px){.results-placeholder{min-height:190px}}
+
+@media(min-width:681px) and (max-height:850px){#workspace{padding-top:1.3rem;padding-bottom:1.2rem}.page-header{margin-bottom:1.05rem}.page-header h1{font-size:clamp(2.15rem,3vw,3rem)}.service-grid>.panel:first-child{padding:1.15rem}}
