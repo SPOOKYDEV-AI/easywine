@@ -74,6 +74,13 @@ test('selection tracking is explicit, tenant-safe and idempotent; statistics ref
  assert.equal(first.status,200);
  assert.match(first.value.sessionId,/^[0-9a-f-]{36}$/);
  assert.equal(first.value.recommendations.length,1);
+ // A computed offer is counted even before any browser view or client choice.
+ const beforeChoice=await req('GET','/api/stats',null,a);
+ assert.equal(beforeChoice.value.totals.generated,1);
+ assert.equal(beforeChoice.value.totals.chosen,0);
+ assert.equal(beforeChoice.value.totals.shown,1); // backwards-compatible alias
+ assert.equal(beforeChoice.value.wines.find(w=>w.id===bottle.value.wine.id).generated,1);
+ assert.match(beforeChoice.value.disclaimer,/calculées côté serveur/);
  assert.equal((await req('POST','/api/service/choice',{sessionId:first.value.sessionId,wineId:bottle.value.wine.id},b)).status,404);
  assert.equal((await req('GET','/api/stats',null,b)).value.totals.shown,0);
  const choose=await req('POST','/api/service/choice',{sessionId:first.value.sessionId,wineId:bottle.value.wine.id},a);
@@ -84,6 +91,7 @@ test('selection tracking is explicit, tenant-safe and idempotent; statistics ref
  assert.equal(repeated.value.alreadyRecorded,true);
  const stats=await req('GET','/api/stats',null,a);
  assert.equal(stats.value.totals.shown,1);
+ assert.equal(stats.value.totals.generated,1);
  assert.equal(stats.value.totals.chosen,1);
  const second=await req('POST','/api/recommend',{dishId:dish.value.dish.id},a);
  assert.equal(second.status,200);

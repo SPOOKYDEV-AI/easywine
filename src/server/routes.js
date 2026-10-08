@@ -344,10 +344,16 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
   }
   if(method==='GET'&&path==='/api/stats'){
     assertRole(user,'owner','manager');
-    const wines=wineStatistics(db,tenant);
-    const totals=wines.reduce((a,w)=>({shown:a.shown+w.shown,chosen:a.chosen+w.chosen}),
-      {shown:0,chosen:0});
-    return {body:{wines,totals,disclaimer:'Affichages et choix explicitement confirmés dans EasyWine. Les ventes POS ne sont pas intégrées.'}};
+    // The server records recommendations when it computes them, BEFORE the
+    // client renders a response. These counts are generated offers, not views.
+    const computed=wineStatistics(db,tenant);
+    const wines=computed.map(w=>({...w,shown:w.generated}));
+    const totals=computed.reduce((a,w)=>({
+      generated:a.generated+w.generated,chosen:a.chosen+w.chosen
+    }),{generated:0,chosen:0});
+    // Preserve the historical "shown" response fields for existing API clients.
+    totals.shown=totals.generated;
+    return {body:{wines,totals,disclaimer:'Propositions calculées côté serveur, non nécessairement vues par le client. Choix enregistrés uniquement après confirmation explicite ; aucune vente POS n’est déduite.'}};
   }
   if(method==='POST'&&path==='/api/recommend'){
     const p=preferences(body),dish=getDish(db,tenant,p.dishId);

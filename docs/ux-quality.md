@@ -15,9 +15,11 @@ Servir une proposition de vin **effectivement présente en cave**, avec une expl
 | Responsable | Tenir la cave exacte | Connexion → Ma cave → recherche → mouvement avec motif/justification → vérification de la quantité | Version stock modifiée par un collègue : conflit explicite ; ne jamais supposer une vente |
 | Responsable | Initialiser le restaurant | Ma carte → créer plat ; cave → import CSV prévisualisé → accord classique → exclusions → collaborateurs | Erreur de validation : formulaire et saisie conservés |
 | Propriétaire | Gérer l'équipe | Mon équipe → activation/désactivation → permissions et comptes, Mon compte → MFA | Révocation des sessions ; clé MFA manquante = refus de démarrage, pas de fallback |
-| Responsable | Comprendre l'activité | Statistiques → affichages → choix déclarés | Sans événements : état vide, pas de statistiques fictives |
+| Responsable | Comprendre l'activité | Statistiques → propositions calculées → choix déclarés | Sans événements : état vide, pas de statistiques fictives |
 
 Un choix déclaré n'est **jamais** une vente encaissée. Les décisions de stock et les statistiques doivent conserver cette distinction.
+
+**Sémantique de mesure :** `generated` compte les propositions persistées lorsque le moteur calcule la réponse, indépendamment de la réception par le navigateur. La notion d'« affichage » n'est pas établie sans accusé de réception explicite du client. Les anciens champs API `shown` restent temporairement des alias de `generated` pour ne pas casser les intégrations ; ne pas les interpréter comme des impressions confirmées. Le ratio présenté est la part des propositions calculées ensuite choisies, et non un taux de conversion commerciale.
 
 ## Architecture de navigation adaptative
 

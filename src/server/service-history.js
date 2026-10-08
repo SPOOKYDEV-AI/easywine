@@ -46,11 +46,11 @@ export function selectWine(db,actor,sessionId,wineId){
 export function wineStatistics(db,restaurantId){
   return db.prepare(
     'SELECT w.id,w.producer,w.cuvee,w.vintage,w.price_cents, '+
-    'COALESCE(seen.count,0) AS shown,COALESCE(chosen.count,0) AS chosen '+
+    'COALESCE(seen.count,0) AS generated,COALESCE(chosen.count,0) AS chosen '+
     'FROM wines w '+
     'LEFT JOIN (SELECT wine_id,COUNT(*) AS count FROM service_options WHERE restaurant_id=? GROUP BY wine_id) seen ON seen.wine_id=w.id '+
     'LEFT JOIN (SELECT wine_id,COUNT(*) AS count FROM service_choices WHERE restaurant_id=? GROUP BY wine_id) chosen ON chosen.wine_id=w.id '+
-    'WHERE w.restaurant_id=? ORDER BY chosen DESC,shown DESC,w.producer,w.cuvee'
+    'WHERE w.restaurant_id=? ORDER BY chosen DESC,generated DESC,w.producer,w.cuvee'
   ).all(restaurantId,restaurantId,restaurantId);
 }
 export function pruneServiceHistory(db,olderThan){
