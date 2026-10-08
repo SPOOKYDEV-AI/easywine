@@ -81,8 +81,13 @@ export async function request(method,path,data){
 }
 export function handle(fn){
  return async(...args)=>{
+  const scope=requestScope;
   try{await fn(...args);}
-  catch(error){notice(error?.message||'Une erreur inattendue est survenue.',{error:true});}
+  catch(error){
+   // A previous tenant's asynchronous error must not surface on the new account.
+   if(scope===requestScope)
+    notice(error?.message||'Une erreur inattendue est survenue.',{error:true});
+  }
  };
 }
 export function loadingState(message='Chargement de votre espace…'){
