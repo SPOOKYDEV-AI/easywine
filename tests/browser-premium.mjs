@@ -32,9 +32,11 @@ try{
  browser=await chromium.launch({channel:'chrome',headless:true,args:['--no-sandbox']});
  const page=await browser.newPage({viewport:{width:1280,height:800}});
  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+ mkdirSync('test-artifacts',{recursive:true});
  await page.route('**/api/session',async route=>{await sleep(580);await route.continue();});
  await page.goto(origin,{waitUntil:'domcontentloaded'});
  await page.locator('#boot:not([hidden]) .wine-glass--hero').waitFor();
+ await page.screenshot({path:'test-artifacts/premium-boot.png'});
  const liquid=page.locator('#boot .wine-glass__liquid');
  assert.match(await liquid.evaluate(el=>getComputedStyle(el).animationName),/wine-pour/);
  await page.locator('#login:not([hidden])').waitFor();
@@ -73,6 +75,23 @@ try{
  assert.equal(await page.locator('#editor input[name=price]').inputValue(),'prix invalide');
  await page.locator('.feedback-dismiss').click();
  assert.equal(await page.locator('#notification').isVisible(),false);
+ await page.locator('#cancel-editor').click();
+
+ // Preview feedback is distinguishable from the final import confirmation.
+ await page.getByRole('button',{name:'Importer CSV'}).click();
+ await page.locator('#editor[open]').waitFor();
+ await page.route('**/api/import/wines/preview',async route=>{
+  await sleep(390);
+  await route.continue();
+ });
+ await page.locator('#editor input[type=file]').setInputFiles({
+  name:'reserve.csv',mimeType:'text/csv',
+  buffer:Buffer.from('producer;cuvee;color;body;acidity;tannin;aromatic;price_eur;stock\nMaison des tests;Cuvée imaginée;blanc;2;4;2;4;36,50;3\n')
+ });
+ await page.locator('.import-preview[aria-busy=true] .wine-glass--mini').waitFor();
+ await page.getByText('Fichier vérifié · prêt à importer.').waitFor();
+ assert.equal(await page.locator('.import-preview').getAttribute('aria-busy'),null);
+ await page.unroute('**/api/import/wines/preview');
  await page.locator('#cancel-editor').click();
 
  await page.locator('#menu [data-view=service]').click();
