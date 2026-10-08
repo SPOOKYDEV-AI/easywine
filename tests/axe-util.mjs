@@ -1,6 +1,9 @@
 import {fileURLToPath} from 'node:url';
+export async function installAxeForTest(page){
+ // DevTools document-start injection does not weaken the app's production CSP.
+ await page.addInitScript({path:fileURLToPath(new URL('../node_modules/axe-core/axe.min.js',import.meta.url))});
+}
 export async function scanWCAG(page,label){
- await page.addScriptTag({path:fileURLToPath(new URL('../node_modules/axe-core/axe.min.js',import.meta.url))});
  const result=await page.evaluate(()=>window.axe.run(document,{
   runOnly:{type:'tag',values:['wcag2a','wcag2aa','wcag21a','wcag21aa','wcag22a','wcag22aa']}
  }));
