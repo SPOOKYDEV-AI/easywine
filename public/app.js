@@ -29,6 +29,11 @@ let currentView='service';
 let store={wines:[],dishes:[]};
 let viewEpoch=0;
 const workspace=byId('workspace');
+function closeMobileMore(){
+ byId('mobile-more-panel').hidden=true;
+ byId('mobile-more').setAttribute('aria-expanded','false');
+}
+
 
 function showLogin(){
  store={wines:[],dishes:[]};
@@ -41,6 +46,8 @@ function showLogin(){
  byId('mfa-form').hidden=true;
  byId('mfa-form').elements.code.value='';
  currentUser=null;
+ closeMobileMore();
+ byId('mobile-nav').hidden=true;
  byId('shell').hidden=true;
  byId('login').hidden=false;
  byId('login-form').elements.password.value='';
@@ -52,6 +59,12 @@ function showShell(){
  byId('restaurant-name').textContent=currentUser.restaurantName;
  byId('user-label').textContent=currentUser.name+' · '+currentUser.role;
  const isStaff=currentUser.role==='staff';
+ byId('mobile-nav').hidden=false;
+ closeMobileMore();
+ for(const button of document.querySelectorAll('#mobile-nav [data-mobile-view],#mobile-more-panel [data-mobile-view]')){
+  button.hidden=isStaff&&!['service','account'].includes(button.dataset.mobileView);
+ }
+ byId('mobile-more').hidden=isStaff;
  for(const button of document.querySelectorAll('#menu [data-view]')){
   button.hidden=isStaff&&!['service','account'].includes(button.dataset.view);
   if(button.dataset.view==='users')button.hidden=currentUser.role==='staff';
@@ -75,6 +88,14 @@ async function view(name){
   button.classList.toggle('active',active);
   if(active)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');
  }
+ closeMobileMore();
+ for(const button of document.querySelectorAll('[data-mobile-view]')){
+  const active=button.dataset.mobileView===name;
+  if(active)button.setAttribute('aria-current','page');
+  else button.removeAttribute('aria-current');
+ }
+ const moreActive=['history','stats','users'].includes(name);
+ byId('mobile-more').dataset.active=String(moreActive);
  const messages={
   service:'Préparation des accords…',wines:'Ouverture de la cave…',dishes:'Chargement de la carte…',
   history:'Lecture de l’historique…',stats:'Calcul des statistiques…',
@@ -160,6 +181,25 @@ byId('mfa-cancel').addEventListener('click',showLogin);
 for(const button of document.querySelectorAll('#menu [data-view]')){
  button.addEventListener('click',handle(()=>view(button.dataset.view)));
 }
+for(const button of document.querySelectorAll('[data-mobile-view]')){
+ button.addEventListener('click',handle(()=>view(button.dataset.mobileView)));
+}
+byId('mobile-more').addEventListener('click',()=>{
+ const panel=byId('mobile-more-panel'),next=!panel.hidden;
+ panel.hidden=next;
+ byId('mobile-more').setAttribute('aria-expanded',String(!next));
+ if(!next)panel.querySelector('button:not([hidden])')?.focus();
+});
+document.addEventListener('pointerdown',event=>{
+ const panel=byId('mobile-more-panel');
+ if(!panel.hidden&&!panel.contains(event.target)&&!byId('mobile-more').contains(event.target))
+  closeMobileMore();
+});
+document.addEventListener('keydown',event=>{
+ if(event.key==='Escape'&&!byId('mobile-more-panel').hidden){
+  closeMobileMore();byId('mobile-more').focus();event.preventDefault();
+ }
+});
 const logout=handle(async()=>{
  await request('POST','/api/logout',{});
  showLogin();
