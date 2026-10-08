@@ -1,0 +1,31 @@
+# Runtime state must never enter version control.
+.data/
+node_modules/
+coverage/
+test-artifacts/
+
+# Database files and journaling companions.
+*.sqlite
+*.sqlite3
+*.db
+*.sqlite-shm
+*.sqlite-wal
+*.db-wal
+*.db-shm
+
+# Secrets, authenticated backups and incomplete archives.
+*.ewb
+*.ewb.partial
+*.key
+*.secret
+backups/
+*.partial
+.env
+.env.*
+!.env.example
+
+# Local tooling and operating systems.
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
