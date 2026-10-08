@@ -7,6 +7,8 @@ CREATE TABLE mfa_credentials (
  enabled INTEGER NOT NULL DEFAULT 0 CHECK(enabled IN (0,1)),
  pending_expires_at TEXT,
  last_step INTEGER NOT NULL DEFAULT -1,
+ failed_attempts INTEGER NOT NULL DEFAULT 0 CHECK(failed_attempts BETWEEN 0 AND 5),
+ locked_until TEXT,
  created_at TEXT NOT NULL
 );
 CREATE TABLE mfa_challenges (
