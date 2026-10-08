@@ -28,7 +28,7 @@ function pills(group,items,selected,onSelect){
  }
  return e('div',{class:'filter-group'},e('p',{class:'filter-name',text:group}),wrap);
 }
-function card(entry,classic=false){
+function card(entry,classic=false,sessionId=null){
  const w=entry.wine;
  const title=[w.producer,w.cuvee,w.vintage].filter(Boolean).join(' ');
  const status=classic?'Accord de référence du restaurant':'Proposition '+entry.rank+' · indice '+entry.score+'/100';
@@ -46,6 +46,21 @@ function card(entry,classic=false){
     e('p',{class:'pitch',text:'« '+entry.pitch+' »'}),
     e('details',{},e('summary',{text:'En savoir plus sur cet accord'}),
       e('p',{text:entry.detail})));
+ }
+
+ if(sessionId&&(!classic||entry.available)){
+  const choose=e('button',{type:'button',class:'button secondary choice-button',text:'Le client a choisi ce vin'});
+  const feedback=e('span',{class:'hint'});
+  choose.addEventListener('click',handle(async()=>{
+   choose.disabled=true;
+   try{
+    await request('POST','/api/service/choice',{sessionId,wineId:w.id});
+    const parent=article.parentElement;
+    if(parent)for(const button of parent.querySelectorAll('.choice-button'))button.disabled=true;
+    feedback.textContent='✓ Choix enregistré (stock à ajuster dans « Ma cave »).';
+   }catch(error){choose.disabled=false;throw error;}
+  }));
+  article.append(choose,feedback);
  }
  return article;
 }
@@ -82,11 +97,11 @@ export function renderService(container,{dishes}){
    });
    const section=e('div',{},e('h2',{text:'Vos accords'}));
    if(data.classic){
-    section.append(e('p',{class:'small-label',text:'L’ACCORD CLASSIQUE'}),card(data.classic,true));
+    section.append(e('p',{class:'small-label',text:'L’ACCORD CLASSIQUE'}),card(data.classic,true,data.sessionId));
    }
    section.append(e('p',{class:'small-label',text:'SÉLECTION POUR CE CLIENT'}));
    if(data.recommendations.length){
-    for(const recommendation of data.recommendations)section.append(card(recommendation));
+    for(const recommendation of data.recommendations)section.append(card(recommendation,false,data.sessionId));
    }else{
     section.append(empty('Aucun vin disponible ne respecte ces critères. Élargissez le budget ou la couleur.'));
    }
