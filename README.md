@@ -6,6 +6,7 @@ EasyWine aide le personnel de salle à recommander rapidement des bouteilles **r
 
 - Interface tactile en français : plat → envies → couleur → budget (facultatif) → recommandations et phrase à dire.
 - Gestion des vins, du stock, des plats, des accords classiques, des comptes et de l'historique.
+- Import de cave CSV avec aperçu, validation stricte, refus des doublons et transaction atomique (500 références par lot maximum).
 - Authentification par session HTTP-only, rôles owner / manager / staff, vérifications serveur tenant par tenant.
 - Base SQLite transactionnelle avec WAL, contrôle de version optimiste et journal d'audit.
 - Algorithme déterministe, sans API payante et sans promesse de sommellerie automatisée.
@@ -56,18 +57,28 @@ Le secret initial doit comporter au minimum 12 caractères. Les données sont cr
 
 **Production :** placer le processus derrière un proxy HTTPS correctement configuré, avec stockage persistant privé et sauvegardes cohérentes (API de sauvegarde SQLite / VACUUM INTO). Le mode production active le cookie Secure. Ne pas exposer directement le port HTTP sur Internet.
 
+## Import CSV de cave
+
+Depuis Ma cave → Importer CSV, choisissez un fichier encodé en UTF-8. Séparateurs point-virgule ou virgule, champs entre guillemets acceptés. L'aperçu doit être sans erreur avant confirmation.
+
+En-têtes obligatoires :
+
+    producer;cuvee;color;body;acidity;tannin;aromatic;price_eur;stock
+
+En-têtes optionnels : appellation, vintage, region, grapes, tags (séparés par |), by_glass, active. Les profils body / acidity / tannin / aromatic doivent être saisis sur une échelle 1–5 : le moteur ne les invente pas. price_eur est exprimé en euros (ex. 85,50). Les doublons sont contrôlés par producteur + cuvée + millésime dans un même établissement. Un lot invalide est entièrement rejeté.
+
 ## Tests
 
     npm test
     npm run check
 
-Les tests couvrent les contraintes du moteur et des parcours HTTP : isolation des restaurants, authentification, accès, stocks, accord classique, audit, concurrence optimiste et contrôle anti-CSRF. La CI est volontairement limitée aux PR, sans installation de dépendances.
+Les tests couvrent également les imports de cave et les contraintes du moteur et des parcours HTTP : isolation des restaurants, authentification, accès, stocks, accord classique, audit, concurrence optimiste et contrôle anti-CSRF. La CI est volontairement limitée aux PR, sans installation de dépendances.
 
 ## Garanties et limites actuelles
 
 - **Garanti par le code :** seuls les vins actifs avec stock positif entrent dans la sélection. Un accord classique épuisé reste mémorisé et est signalé. Chaque mutation importante est journalisée. Les requêtes sont limitées au restaurant de la session.
 - **À valider avec des professionnels du vin :** calibration des coefficients d'accord. Le score est heuristique, pas une mesure scientifique de qualité gastronomique.
-- **Non réalisé dans cette version :** import CSV/Excel, POS/Trivec, gestion des réservations, choix effectif du client et analytics avancées, véritable fonctionnement hors connexion au serveur, gestion de plusieurs établissements par un même compte et reprise automatique après sinistre.
+- **Non réalisé dans cette version :** import Excel natif (.xlsx), POS/Trivec, gestion des réservations, choix effectif du client et analytics avancées, véritable fonctionnement hors connexion au serveur, gestion de plusieurs établissements par un même compte et reprise automatique après sinistre.
 - **Architecture :** mono-instance SQLite. Passer à PostgreSQL et aux contrôles de tenant côté base pour un SaaS distribué et des opérations multi-processus.
 - **Conformité :** cette version ne constitue pas une validation RGPD/CNIL. Prévoir avant exploitation publique une politique de conservation, droits des personnes, information, durcissement déploiement, revue de sécurité et procédures de sauvegarde/restauration.
 
