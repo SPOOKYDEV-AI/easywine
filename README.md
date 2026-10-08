@@ -111,7 +111,7 @@ Restaurer **vers un nouveau fichier**, sans écraser la base en cours d'utilisat
 
 Sous PowerShell, placez les chemins entre guillemets, par exemple `npm run backup -- backup --directory "C:\\EasyWine\\backups"`. Pour basculer : arrêter le service, modifier `EASYWINE_DB` pour pointer vers la nouvelle base puis redémarrer. Conserver l'ancienne base intacte pour le rollback. Les sauvegardes doivent être conservées hors du serveur, protégées et restaurées lors d'exercices réguliers. La commande ne remplace pas une vraie politique de sauvegarde externalisée.
 
-La base est migrée transactionnellement de v1 à v2 puis de v2 à v3 au démarrage. Les versions inconnues provoquent un refus de démarrage (pas de migration destructive implicite).
+La base est migrée transactionnellement de v1 à v2 puis de v2 à v3 au démarrage. Une archive SQLite historique v1 ou v2 peut être restaurée dans un **nouveau** fichier, puis migrée par EasyWine au démarrage ; aucun fichier source n'est réécrit. Les formats inconnus sont refusés. La vérification de sauvegarde v3 contrôle aussi la continuité du journal de stock avec la quantité courante. Les versions inconnues provoquent un refus de démarrage (pas de migration destructive implicite).
 
 Purger l'historique de service au-delà d'une durée définie par la politique de conservation du restaurant (exemple 180 jours) :
 
