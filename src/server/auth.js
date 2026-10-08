@@ -40,13 +40,20 @@ export async function signIn(db,{slug,email,password}){
   const actual=await makeHashAsync(password,user?.salt??dummySalt);
   const expected=user?.password_hash??dummyHash;
   if(!timingSafeEqual(Buffer.from(actual,'hex'),Buffer.from(expected,'hex'))||!user)return null;
+  const mfa=db.prepare('SELECT enabled FROM mfa_credentials WHERE user_id=?').get(user.id);
+  if(mfa?.enabled)return {mfaUser:user}; // No authenticated session until second factor
+  return issueSession(db,user);
+}
+export function issueSession(db,user,{insideTransaction=false}={}){
   const token=randomBytes(32).toString('base64url');
   const expiresAt=new Date(Date.now()+SESSION_MS).toISOString();
-  transaction(db,()=>{
+  const save=()=>{
     db.prepare('DELETE FROM sessions WHERE expires_at<?').run(now());
     db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)')
       .run(hashToken(token),user.id,expiresAt);
-  });
+  };
+  if(insideTransaction)save();
+  else transaction(db,save);
   return {token,expiresAt,user:publicUser(user)};
 }
 export function publicUser(user){
