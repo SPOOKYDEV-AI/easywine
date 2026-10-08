@@ -5,7 +5,7 @@ import {tmpdir} from 'node:os';
 import {dirname,join,resolve} from 'node:path';
 import {createReadStream,createWriteStream,mkdirSync,mkdtempSync,
   readSync,openSync,closeSync,statSync,writeFileSync,appendFileSync,
-  fsyncSync,renameSync,unlinkSync,rmSync} from 'node:fs';
+  fsyncSync,renameSync,unlinkSync,rmSync,fstatSync,constants,readFileSync} from 'node:fs';
 import {pipeline} from 'node:stream/promises';
 import {verifySnapshot,restoreToNewPath} from './maintenance.js';
 
@@ -19,6 +19,23 @@ function syncFile(path){const fd=openSync(path,'r');try{fsyncSync(fd);}finally{c
 function syncDir(dir){
   try{const fd=openSync(dir,'r');try{fsyncSync(fd);}finally{closeSync(fd);}}
   catch(error){if(!['EINVAL','EPERM','EACCES','EISDIR','ENOTSUP'].includes(error.code))throw error;}
+}
+export function loadBackupKey(){
+  const inline=process.env.EASYWINE_BACKUP_KEY;
+  const filename=process.env.EASYWINE_BACKUP_KEY_FILE;
+  if(Boolean(inline)===Boolean(filename))
+    throw Error('Configurez uniquement EASYWINE_BACKUP_KEY ou EASYWINE_BACKUP_KEY_FILE.');
+  if(inline)return backupKey(inline);
+  // Reject symbolic links and group/world-readable secret files on Unix.
+  const fd=openSync(resolve(filename),constants.O_RDONLY | (constants.O_NOFOLLOW||0));
+  try{
+    const info=fstatSync(fd);
+    if(!info.isFile()||info.size>256||info.size===0)
+      throw Error('Fichier de clé non valide.');
+    if(process.platform!=='win32'&&(info.mode&0o077)!==0)
+      throw Error('Le fichier de clé doit être privé (chmod 600).');
+    return backupKey(readFileSync(fd,'utf8').trim());
+  }finally{closeSync(fd);}
 }
 export function backupKey(value=process.env.EASYWINE_BACKUP_KEY){
   if(typeof value!=='string'||!/^[a-fA-F0-9]{64}$/.test(value))
