@@ -1,0 +1,54 @@
+
+name: EasyWine CI
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: easywine-ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Check syntax
+        run: |
+          for file in $(find src public -name '*.js' -type f); do node --check "$file"; done
+      - name: Test (no dependencies)
+        run: npm test
+
+  browser:
+    needs: test
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: '22'
+      - name: Install test-only browser driver
+        run: npm install --no-save --no-package-lock playwright@1.55.0
+      - name: Verify Chrome is available
+        run: google-chrome --version
+      - name: Exercise real browser journeys
+        run: node tests/browser-smoke.mjs
+      - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        if: always()
+        with:
+          name: easywine-browser-screenshots
+          path: test-artifacts/
+          if-no-files-found: ignore
+          retention-days: 7
