@@ -55,9 +55,12 @@ export async function request(method,path,data){
   init.signal=AbortSignal.timeout(15000);
   response=await fetch(path,init);
  }catch(error){
+  const caution=method==='GET'
+   ?'Vous pouvez réessayer.'
+   :'Une action a peut-être été enregistrée : vérifiez son résultat avant de recommencer pour éviter un doublon.';
   if(error?.name==='TimeoutError'||error?.name==='AbortError')
-   throw new Error('Le serveur met trop de temps à répondre. Vérifiez votre connexion, puis réessayez.');
-  throw new Error('Connexion au serveur indisponible. Vérifiez le réseau local.');
+   throw new Error('Le serveur tarde à répondre. '+caution);
+  throw new Error('Connexion au serveur indisponible. '+caution);
  }
  let result;
  try{result=await response.json();}catch{throw new Error('Réponse serveur invalide.');}
