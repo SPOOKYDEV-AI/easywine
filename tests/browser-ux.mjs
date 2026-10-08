@@ -78,6 +78,24 @@ try{
  };
  await clickAndWait('wines','.item-row');
  await page.getByText('Réserve de test').waitFor();
+ // Keyboard focus and durable form submission under a delayed HTTP response.
+ await page.getByRole('button',{name:'Modifier'}).first().click();
+ await page.locator('#editor[open]').waitFor();
+ assert.equal(await page.evaluate(()=>document.activeElement?.name),'producer');
+ await page.locator('#editor input[name=region]').fill('Région de qualité');
+ let saves=0;
+ await page.route('**/api/wines/*',async route=>{
+  if(route.request().method()==='PATCH'){saves++;await sleep(320);}
+  await route.continue();
+ });
+ await page.locator('#editor button[type=submit]').click();
+ await page.getByText('Enregistrement…').waitFor();
+ await page.keyboard.press('Escape');
+ assert.equal(await page.locator('#editor').isVisible(),true,'Saving cannot be closed by Escape');
+ await page.locator('#editor[open]').waitFor({state:'hidden'});
+ assert.equal(saves,1);
+ await page.unroute('**/api/wines/*');
+ await page.getByText('Région de qualité').waitFor();
  let delayStats=true;
  await page.route('**/api/stats',async route=>{if(delayStats)await sleep(430);await route.continue();});
  await page.locator('#menu [data-view=stats]').click();
