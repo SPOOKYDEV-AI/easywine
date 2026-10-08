@@ -1,9 +1,27 @@
 
 import {byId,request,notice,handle,loadingState,errorState,withBusy} from './ui.js';
-import {renderService,resetServicePreferences} from './service.js';
-import {renderStats} from './stats.js';
-import {renderWines,renderDishes,renderHistory,renderUsers,addUserButton} from './admin.js';
-import {renderAccount} from './account.js';
+// Route-level code splitting: the login screen only downloads app.js and ui.js.
+// Never evaluate the full administration/statistics modules before they are needed.
+const routeModules=new Map();
+let serviceModule=null;
+function moduleFor(viewName){
+ const section=['wines','dishes','history','users'].includes(viewName)?'admin':viewName;
+ const loaders={
+  service:()=>import('./service.js'),
+  admin:()=>import('./admin.js'),
+  stats:()=>import('./stats.js'),
+  account:()=>import('./account.js')
+ };
+ if(!Object.hasOwn(loaders,section))throw new Error('Rubrique inconnue.');
+ if(!routeModules.has(section)){
+  const loading=loaders[section]().then(mod=>{
+   if(section==='service')serviceModule=mod;
+   return mod;
+  }).catch(error=>{routeModules.delete(section);throw error;});
+  routeModules.set(section,loading);
+ }
+ return routeModules.get(section);
+}
 
 let currentUser=null;
 let pendingMfaChallenge=null;
@@ -14,7 +32,7 @@ const workspace=byId('workspace');
 
 function showLogin(){
  store={wines:[],dishes:[]};
- resetServicePreferences();
+ if(serviceModule)serviceModule.resetServicePreferences();
  viewEpoch++;
  byId('boot').hidden=true;
  byId('workspace').setAttribute('aria-busy','false');
@@ -67,15 +85,17 @@ async function view(name){
  target.setAttribute('aria-busy','true');
  target.replaceChildren(loadingState(messages[name]||'Chargement…'));
  try{
-  if(name==='service')renderService(staging,store,{role:currentUser.role,onNavigate:view});
-  else if(name==='wines')renderWines(staging,store,refresh);
-  else if(name==='dishes')renderDishes(staging,store,refresh);
-  else if(name==='history')await renderHistory(staging);
-  else if(name==='stats')await renderStats(staging);
+  const mod=await moduleFor(name);
+  if(epoch!==viewEpoch)return;
+  if(name==='service')mod.renderService(staging,store,{role:currentUser.role,onNavigate:view});
+  else if(name==='wines')mod.renderWines(staging,store,refresh);
+  else if(name==='dishes')mod.renderDishes(staging,store,refresh);
+  else if(name==='history')await mod.renderHistory(staging);
+  else if(name==='stats')await mod.renderStats(staging);
   else if(name==='users'){
-   await renderUsers(staging,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
-   if(currentUser.role==='owner')addUserButton(staging,refresh);
-  }else if(name==='account')await renderAccount(staging,currentUser,showLogin);
+   await mod.renderUsers(staging,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
+   if(currentUser.role==='owner')mod.addUserButton(staging,refresh);
+  }else if(name==='account')await mod.renderAccount(staging,currentUser,showLogin);
   if(epoch!==viewEpoch)return;
   target.replaceChildren(...staging.childNodes);
   target.focus({preventScroll:true});
