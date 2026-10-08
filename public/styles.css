@@ -21,3 +21,9 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 
 /* On small touchscreens, keep sign-out reachable rather than hiding the desktop account panel. */
 @media(max-width:680px){.sidebar .aside-bottom{display:flex;justify-content:flex-end;border:0;margin:0;padding:.05rem .6rem .2rem}.sidebar .aside-bottom #user-label{display:none}.sidebar .logout-button{margin:0;padding:.35rem .65rem;background:#f4e9e8;border-radius:8px;font-size:.76rem}}
+
+.stats-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem;margin-bottom:1.5rem}
+.stat-tile{display:flex;flex-direction:column;gap:.65rem}
+.stat-tile strong{font:2.6rem Georgia,serif;color:#682c3c}
+.choice-button{margin-top:.6rem;margin-right:1rem}
+@media(max-width:680px){.stats-grid{grid-template-columns:1fr;gap:.6rem}.stat-tile strong{font-size:2rem}}
