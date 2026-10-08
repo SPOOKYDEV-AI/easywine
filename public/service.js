@@ -22,18 +22,26 @@ export function resetServicePreferences(){
  preferences.color='';
  preferences.budget='none';
 }
-function pills(group,items,selected,onSelect){
+function pills(group,items,selected,onSelect,onChanged){
  const wrap=e('div',{class:'chip-wrap'});
  for(const [value,title] of items){
   const button=e('button',{type:'button',class:'chip'+(selected(value)?' selected':''),
     'aria-pressed':String(selected(value)),text:title,
-    onClick:()=>{onSelect(value);for(const b of wrap.children){
+    onClick:()=>{onSelect(value);onChanged();for(const b of wrap.children){
       const isActive=selected(b.dataset.value);
       b.classList.toggle('selected',isActive);b.setAttribute('aria-pressed',String(isActive));
     }}});
   button.dataset.value=value;wrap.append(button);
  }
  return e('div',{class:'filter-group'},group?e('p',{class:'filter-name',text:group}):null,wrap);
+}
+function recommendationPrompt(changed=false){
+ return e('div',{class:'results-placeholder'},
+  e('div',{class:'placeholder-icon','aria-hidden':'true',text:'✧'}),
+  e('h2',{text:changed?'Vos critères ont changé.':'Laissez parler votre cave.'}),
+  e('p',{text:changed
+   ?'Relancez la recherche pour obtenir des accords correspondant à votre nouvelle sélection.'
+   :'Sélectionnez un plat et les préférences du client pour obtenir vos accords.'}));
 }
 function card(entry,classic=false,sessionId=null){
  const w=entry.wine;
@@ -115,28 +123,34 @@ export function renderService(container,{dishes,wines},{role='staff',onNavigate=
   left.append(alert);
  }
  const chosenStyles=preferences.styles;
+ let criteriaVersion=0;
+ function criteriaChanged(){
+  criteriaVersion++;
+  right.setAttribute('aria-busy','false');
+  right.replaceChildren(recommendationPrompt(true));
+ }
  left.append(e('h3',{class:'step-heading'},e('span',{class:'step',text:'01'}),'Choisir le plat'));
  const dishSelect=select('dish',active.map(d=>[d.id,d.name]),preferences.dishId);
  if(!active.some(d=>d.id===dishSelect.value))preferences.dishId=dishSelect.value;
- dishSelect.addEventListener('change',()=>{preferences.dishId=dishSelect.value;});
+ dishSelect.addEventListener('change',()=>{preferences.dishId=dishSelect.value;criteriaChanged();});
  dishSelect.setAttribute('aria-label','Plat du client');left.append(dishSelect);
 
  left.append(pills('02 · Les envies du client',styles.slice(0,6),
-   x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}));
+   x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);},criteriaChanged));
 
  const advanced=e('details',{class:'optional-filters'},
   e('summary',{text:'Personnaliser davantage'}),
   pills('Autres styles',styles.slice(6),
-    x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);}),
-  pills('Couleur / type de vin',colors,x=>x===preferences.color,x=>{preferences.color=x;}),
-  pills('Budget éventuel',budgets,x=>x===preferences.budget,x=>{preferences.budget=x;}));
+    x=>chosenStyles.has(x),x=>{if(chosenStyles.has(x))chosenStyles.delete(x);else chosenStyles.add(x);},criteriaChanged),
+  pills('Couleur / type de vin',colors,x=>x===preferences.color,x=>{preferences.color=x;},criteriaChanged),
+  pills('Budget éventuel',budgets,x=>x===preferences.budget,x=>{preferences.budget=x;},criteriaChanged));
  left.append(advanced);
  const submit=e('button',{type:'button',class:'button primary service-submit',text:'Trouver les meilleurs accords →'});
  left.append(submit);
- right.append(e('div',{class:'results-placeholder'},e('div',{class:'placeholder-icon',text:'✧'}),
-  e('h2',{text:'Laissez parler votre cave.'}),e('p',{text:'Sélectionnez un plat et les préférences du client pour obtenir vos accords.'})));
+ right.append(recommendationPrompt());
  submit.addEventListener('click',handle(async()=>{
   await withBusy(submit,async()=>{
+   const submittedVersion=criteriaVersion;
    right.setAttribute('aria-busy','true');
    right.replaceChildren(loadingState('Recherche des vins réellement disponibles…'));
    const budget=budgets.find(b=>b[0]===preferences.budget);
@@ -147,9 +161,13 @@ export function renderService(container,{dishes,wines},{role='staff',onNavigate=
      minPriceCents:budget[2],maxPriceCents:budget[3]
     });
    }catch(error){
-    right.replaceChildren(errorState(error?.message||'Erreur de recommandation.',()=>submit.click()));
+    if(submittedVersion===criteriaVersion&&right.isConnected)
+     right.replaceChildren(errorState(error?.message||'Erreur de recommandation.',()=>submit.click()));
     return;
    }
+   // A delayed response belongs to the submitted criteria, not later edits.
+   // Never display it under a new selection or in a detached route.
+   if(submittedVersion!==criteriaVersion||!right.isConnected)return;
    const section=e('div',{},e('h2',{text:'Vos accords'}),
     e('p',{class:'result-confirmation',role:'status',
      text:data.recommendations.length+' suggestion(s) vérifiée(s) dans votre cave.'}));
