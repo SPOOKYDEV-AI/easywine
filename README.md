@@ -141,6 +141,26 @@ Purger l'historique de service au-delà d'une durée définie par la politique d
 
 Cette purge ne supprime pas les anciennes sauvegardes : gérer séparément leur durée de conservation.
 
+## Validation sur la sandbox Windows SPOOKY
+
+EasyWine possède un profil déclaré dans `.sandbox/profile.json`, consommé par l'agent de `SPOOKYDEV-AI/spooky-sandbox-control-plane`. Il demande Node.js 22.16+, vérifie les principaux modules JavaScript, exécute tous les tests Node et ouvre le véritable serveur EasyWine sur un port local dynamique pour un audit Playwright **sans données de production** (390×844, 768×1024, 1440×900). Pour l'audit visuel, `scripts/sandbox-audit-server.js` impose une **base SQLite en mémoire** et une écoute localhost, même si une variable `EASYWINE_DB` existe sur la machine. Le script refuse de se lancer hors d'un job marqué `SPOOKY_SANDBOX=1`. Le worktree de test est indépendant et nettoyé par l'agent après exécution. Le job `smoke` exécute les vérifications disponibles et les mesures UI du profil, sans transformer en échec le `401` normalement renvoyé par la vérification de session anonyme ; les erreurs de console et les débordements restent signalés dans les résultats. L'audit visuel générique vérifie la page de connexion ; les tests Chrome applicatifs de connexion/MFA restent également exécutés par GitHub Actions.
+
+L'agent local doit autoriser explicitement ce dépôt : depuis le PC sandbox, utiliser `C:\\SPOOKY_SANDBOX\\SANDBOX-ALLOW-REPO.cmd SPOOKYDEV-AI/easywine`. Ne pas contourner la liste `allowedRepos` via un dépôt déjà autorisé.
+
+Envoyer ensuite **dans le dépôt de contrôle privé**, et non dans EasyWine, une issue `sandbox-job` avec le corps JSON :
+
+```json
+{
+  "repo": "SPOOKYDEV-AI/easywine",
+  "ref": "main",
+  "runner": "auto",
+  "task": "smoke",
+  "publish": true
+}
+```
+
+L'agent répond sur l'issue, écrit les résultats synthétiques dans la branche `sandbox-results` du dépôt privé, et place les journaux/captures dans une Release privée temporaire. Préférer un commit SHA figé pour une certification reproductible. N'utiliser que des branches **revues et dignes de confiance** : les tests exécutent réellement du code sur le PC Windows. Ne jamais inclure de secrets ou données de patients/clients dans l'issue ou dans les captures publiées. Pour des données sensibles, utiliser `"publish": false` et inspecter localement les artefacts.
+
 ## Tests
 
     npm test

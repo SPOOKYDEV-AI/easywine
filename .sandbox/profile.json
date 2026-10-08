@@ -1,0 +1,44 @@
+{
+  "version": 1,
+  "runner": "node-web",
+  "task": "smoke",
+  "pipeline": {
+    "install": "node -e \"const [major,minor]=process.versions.node.split('.').map(Number);if(major<22||(major===22&&minor<16)){console.error('EasyWine requires Node.js 22.16+');process.exit(1)}\"",
+    "lint": [
+      "node --check src/server/index.js",
+      "node --check src/server/maintenance-cli.js",
+      "node --check public/app.js",
+      "node --check public/service.js",
+      "node --check public/admin.js"
+    ],
+    "test": "npm test"
+  },
+  "serve": {
+    "command": "node scripts/sandbox-audit-server.js",
+    "readyPath": "/healthz",
+    "startupTimeoutMs": 60000
+  },
+  "ui": {
+    "enabled": true,
+    "path": "/",
+    "offline": false,
+    "waitForSelector": "#login",
+    "viewports": [
+      {
+        "name": "phone",
+        "width": 390,
+        "height": 844
+      },
+      {
+        "name": "tablet",
+        "width": 768,
+        "height": 1024
+      },
+      {
+        "name": "desktop",
+        "width": 1440,
+        "height": 900
+      }
+    ]
+  }
+}
