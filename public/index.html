@@ -73,6 +73,20 @@
    <header class="topbar"><span class="mobile-brand">◈ easywine<span class="wordmark-dot">.</span></span><span class="topbar-tag">CONSEIL & ACCORDS</span><span id="today"></span><button id="logout-mobile" class="mobile-logout" type="button">Quitter ↗</button></header>
    <main id="workspace" tabindex="-1" aria-live="off"></main>
   </div>
+  <nav id="mobile-nav" class="mobile-nav" aria-label="Navigation mobile" hidden>
+   <button type="button" data-mobile-view="service"><span aria-hidden="true">✧</span><span>Conseiller</span></button>
+   <button type="button" data-mobile-view="wines"><span aria-hidden="true">▦</span><span>Cave</span></button>
+   <button type="button" data-mobile-view="dishes"><span aria-hidden="true">▤</span><span>Carte</span></button>
+   <button type="button" data-mobile-view="account"><span aria-hidden="true">⚙</span><span>Compte</span></button>
+   <button id="mobile-more" type="button" aria-controls="mobile-more-panel" aria-expanded="false">
+    <span aria-hidden="true">···</span><span>Plus</span>
+   </button>
+  </nav>
+  <div id="mobile-more-panel" class="mobile-more-panel" role="group" aria-label="Autres rubriques" hidden>
+   <button type="button" data-mobile-view="history">◷ &nbsp; Historique</button>
+   <button type="button" data-mobile-view="stats">▥ &nbsp; Statistiques</button>
+   <button type="button" data-mobile-view="users">♙ &nbsp; Mon équipe</button>
+  </div>
  </div>
  <dialog id="editor" aria-label="Formulaire d'édition">
   <form id="editor-form" class="editor-form">
