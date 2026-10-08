@@ -185,13 +185,60 @@ export async function renderHistory(container){
    e('p',{text:ev.objectId})));
  }
 }
-export async function renderUsers(container){
+
+export async function renderUsers(container,{canManage=false,refresh,currentId}={}){
  container.replaceChildren(heading('Mon équipe','Les personnes autorisées à utiliser EasyWine.'));
  const {users}=await request('GET','/api/users');
  const list=e('div',{class:'item-list'});container.append(list);
- for(const user of users)list.append(e('div',{class:'item-row'},e('div',{},
-  e('h3',{text:user.name}),e('p',{text:user.email})),
-  e('span',{class:'pill',text:user.role+(user.active?'':' · inactif')})));
+ for(const member of users){
+  const actions=e('div',{class:'item-actions'},e('span',{class:'pill',text:member.role+(member.active?'':' · inactif')}));
+  if(canManage&&member.id!==currentId&&member.role!=='owner'){
+   actions.append(
+    e('button',{type:'button',class:'subtle-button',text:member.active?'Désactiver':'Réactiver',
+      onClick:()=>edit((member.active?'Désactiver':'Réactiver')+' · '+member.name,fields=>{
+       fields.append(e('p',{class:'muted',text:member.active?
+        'La désactivation retire immédiatement les accès et révoque toutes les sessions de cette personne.':
+        'Le compte sera réactivé, sans rétablir ses anciennes sessions.'}));
+      },async()=>{
+       await request('PATCH','/api/users/'+member.id,{active:!member.active});await refresh();
+      })}),
+    e('button',{type:'button',class:'subtle-button',text:'Réinitialiser le mot de passe',
+      onClick:()=>edit('Nouveau mot de passe · '+member.name,fields=>{
+       field(box(fields),'Nouveau mot de passe (12 caractères minimum)','password','','password',true);
+       fields.append(e('p',{class:'hint',text:'Toutes les sessions de cette personne seront révoquées. Communiquez le mot de passe par un canal sûr.'}));
+      },async form=>{
+       await request('POST','/api/users/'+member.id+'/password',{password:form.get('password')});
+       await refresh();
+      })})
+   );
+  }
+  list.append(e('div',{class:'item-row'},e('div',{},
+   e('h3',{text:member.name}),e('p',{text:member.email})),actions));
+ }
+}
+export function renderAccount(container,user,onPasswordChanged){
+ container.replaceChildren(heading('Mon compte','Sécurisez votre accès à '+user.restaurantName+'.'));
+ const panel=e('section',{class:'panel'});
+ const form=e('form',{class:'form-card'});
+ form.append(e('h2',{text:'Changer mon mot de passe'}),
+   e('p',{class:'muted',text:'La modification révoquera toutes vos sessions, y compris celle-ci.'}));
+ const current=e('input',{type:'password',name:'current',autocomplete:'current-password'});
+ const next=e('input',{type:'password',name:'next',autocomplete:'new-password'});
+ const confirm=e('input',{type:'password',name:'confirm',autocomplete:'new-password'});
+ current.required=next.required=confirm.required=true;
+ next.minLength=confirm.minLength=12;
+ form.append(e('label',{},'Mot de passe actuel',current),
+  e('label',{},'Nouveau mot de passe (12 caractères minimum)',next),
+  e('label',{},'Confirmer le nouveau mot de passe',confirm),
+  e('button',{type:'submit',class:'button primary',text:'Enregistrer et me déconnecter'}));
+ form.addEventListener('submit',handle(async event=>{
+  event.preventDefault();
+  if(next.value!==confirm.value)throw Error('Les deux mots de passe ne correspondent pas.');
+  await request('POST','/api/me/password',{currentPassword:current.value,newPassword:next.value});
+  onPasswordChanged();
+  notice('Mot de passe modifié. Connectez-vous à nouveau.');
+ }));
+ panel.append(form);container.append(panel);
 }
 export function addUserButton(container,refresh){
  const header=container.querySelector('.page-header');
