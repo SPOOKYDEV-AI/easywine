@@ -1,5 +1,6 @@
 
 import http from 'node:http';
+import {pathToFileURL} from 'node:url';
 import {openDatabase} from './db.js';
 import {getUser} from './auth.js';
 import {route} from './routes.js';
@@ -50,4 +51,4 @@ export function start(){
  process.once('SIGINT',stop);process.once('SIGTERM',stop);
  return server;
 }
-if(process.argv[1]&&import.meta.url===new URL('file://'+process.argv[1]).href)start();
+if(process.argv[1]&&import.meta.url===pathToFileURL(process.argv[1]).href)start();
