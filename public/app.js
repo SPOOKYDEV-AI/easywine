@@ -1,5 +1,5 @@
 
-import {byId,request,notice,handle,loadingState,errorState,withBusy} from './ui.js';
+import {byId,request,notice,handle,loadingState,errorState,withBusy,rotateRequestScope} from './ui.js';
 import {viewFromHash,writeViewLocation} from './navigation.js';
 import './network-status.js';
 // Route-level code splitting: the login screen only downloads app.js and ui.js.
@@ -41,6 +41,7 @@ function closeMobileMore(){
 
 
 function showLogin(){
+ rotateRequestScope();
  sessionEpoch++;
  storeLoadedAt=0;
  store={wines:[],dishes:[]};
@@ -159,6 +160,7 @@ async function view(name,{fromHistory=false,replaceHistory=false}={}){
  }
 }
 async function enter(user){
+ rotateRequestScope();
  sessionEpoch++;
  storeLoadedAt=0;
  currentUser=user;
