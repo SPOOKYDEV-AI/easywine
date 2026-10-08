@@ -5,6 +5,7 @@ import {now,transaction,record,encode,wineFrom,dishFrom} from './db.js';
 import {recommend} from '../core/pairing.js';
 import {HttpError,fail,object,text,number,wineInput,dishInput,preferences} from './validation.js';
 import {parseWineCsv,signature} from './import-csv.js';
+import {recordSuggestions,selectWine,wineStatistics} from './service-history.js';
 
 const loginAttempts=new Map();
 function checkRate(ip){
@@ -238,13 +239,28 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     });
     return {body:{wineIds:ids,dish:getDish(db,tenant,prior.id)}};
   }
+
+  if(method==='POST'&&path==='/api/service/choice'){
+    const o=object(body);
+    const sessionId=text(o.sessionId,'Session',80),wineId=text(o.wineId,'Vin',80);
+    if(!/^[0-9a-f-]{36}$/.test(sessionId)||!/^[0-9a-f-]{36}$/.test(wineId))
+      fail('Identifiants invalides.');
+    return {body:selectWine(db,user,sessionId,wineId)};
+  }
+  if(method==='GET'&&path==='/api/stats'){
+    assertRole(user,'owner','manager');
+    const wines=wineStatistics(db,tenant);
+    const totals=wines.reduce((a,w)=>({shown:a.shown+w.shown,chosen:a.chosen+w.chosen}),
+      {shown:0,chosen:0});
+    return {body:{wines,totals,disclaimer:'Affichages et choix explicitement confirmés dans EasyWine. Les ventes POS ne sont pas intégrées.'}};
+  }
   if(method==='POST'&&path==='/api/recommend'){
     const p=preferences(body),dish=getDish(db,tenant,p.dishId);
     if(!dish.active)fail('Ce plat est désactivé.',409);
     const wines=db.prepare('SELECT * FROM wines WHERE restaurant_id=?').all(tenant).map(wineFrom);
     const blocked=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?').all(tenant,dish.id).map(r=>r.wine_id);
     const classic=dish.classicWineId?wines.find(w=>w.id===dish.classicWineId):null;
-    const results=recommend({dish,wines,blockedWineIds:blocked,styles:p.styles,color:p.color,
+    const results=recommend({dish,wines:wines.filter(w=>w.id!==classic?.id),blockedWineIds:blocked,styles:p.styles,color:p.color,
       minPriceCents:p.minPriceCents,maxPriceCents:p.maxPriceCents,
       diversifyPrices:p.minPriceCents===null&&p.maxPriceCents===null});
     return {body:{dish, classic:classic?{wine:classic,available:classic.active&&classic.stock>0&&!blocked.includes(classic.id),blocked:blocked.includes(classic.id)}:null,
