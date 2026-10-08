@@ -85,11 +85,27 @@ async function view(name){
   if(epoch===viewEpoch)target.setAttribute('aria-busy','false');
  }
 }
+async function enter(user){
+ currentUser=user;
+ const stamp=++viewEpoch;
+ showShell();
+ workspace.setAttribute('aria-busy','true');
+ workspace.replaceChildren(loadingState('Chargement de votre cave et de votre carte…'));
+ try{
+  await load();
+  if(stamp!==viewEpoch)return;
+  await view('service');
+  performance.mark('easywine:app-ready');
+ }catch(error){
+  if(stamp!==viewEpoch)return;
+  workspace.setAttribute('aria-busy','false');
+  workspace.replaceChildren(errorState(error?.message||'Chargement impossible.',()=>enter(user)));
+ }
+}
 byId('login-form').addEventListener('submit',handle(async event=>{
  event.preventDefault();
  const submit=event.target.querySelector('button[type=submit]');
- submit.disabled=true;
- try{
+ await withBusy(submit,async()=>{
   const form=new FormData(event.target);
   const result=await request('POST','/api/login',{
    slug:String(form.get('slug')).trim().toLowerCase(),
@@ -103,23 +119,20 @@ byId('login-form').addEventListener('submit',handle(async event=>{
    byId('mfa-form').elements.code.focus();
    return;
   }
-  currentUser=result.user;
-  await load();showShell();await view('service');
- }finally{submit.disabled=false;}
+  await enter(result.user);
+ },'Connexion en cours…');
 }));
 
 byId('mfa-form').addEventListener('submit',handle(async event=>{
  event.preventDefault();
  if(!pendingMfaChallenge)throw Error('Votre défi de sécurité a expiré. Recommencez la connexion.');
  const submit=event.target.querySelector('button[type=submit]');
- submit.disabled=true;
- try{
+ await withBusy(submit,async()=>{
   const code=String(new FormData(event.target).get('code')||'').trim();
   const result=await request('POST','/api/login/mfa',{challenge:pendingMfaChallenge,code});
   pendingMfaChallenge=null;
-  currentUser=result.user;
-  await load();showShell();await view('service');
- }finally{submit.disabled=false;}
+  await enter(result.user);
+ },'Vérification du code…');
 }));
 byId('mfa-cancel').addEventListener('click',showLogin);
 for(const button of document.querySelectorAll('#menu [data-view]')){
@@ -132,11 +145,18 @@ const logout=handle(async()=>{
 byId('logout').addEventListener('click',logout);
 byId('logout-mobile').addEventListener('click',logout);
 window.addEventListener('easywine:unauthorized',showLogin);
-(async()=>{
+async function boot(){
+ byId('boot').hidden=false;
+ byId('login').hidden=true;
+ byId('shell').hidden=true;
  try{
   const result=await request('GET','/api/session');
-  if(!result.user){showLogin();return;}
-  currentUser=result.user;
-  await load();showShell();await view('service');
- }catch(error){showLogin();}
-})();
+  if(!result.user){showLogin();performance.mark('easywine:login-ready');return;}
+  await enter(result.user);
+ }catch(error){
+  const message=error?.message||'Impossible de joindre EasyWine.';
+  byId('boot').replaceChildren(errorState(message,boot));
+  byId('boot').hidden=false;
+ }
+}
+boot();
