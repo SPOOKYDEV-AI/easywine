@@ -14,6 +14,12 @@ export function passwordRecord(password){
   const salt=randomBytes(16).toString('hex');
   return {salt,passwordHash:makeHash(password,salt)};
 }
+export function verifyPassword(user,password){
+  if(typeof password!=='string'||Buffer.byteLength(password)>1024)return false;
+  const actual=makeHash(password,user?.salt??dummySalt);
+  const expected=user?.password_hash??dummyHash;
+  return timingSafeEqual(Buffer.from(actual,'hex'),Buffer.from(expected,'hex'))&&!!user;
+}
 export function createUser(db,{restaurantId,name,email,role,password}){
   if(!['owner','manager','staff'].includes(role))throw new Error('Rôle invalide');
   const secret=passwordRecord(password),userId=id();
@@ -25,9 +31,7 @@ export function signIn(db,{slug,email,password}){
   const user=db.prepare(
     'SELECT u.*,r.slug,r.name AS restaurant_name FROM users u JOIN restaurants r ON r.id=u.restaurant_id WHERE r.slug=? AND u.email=? AND u.active=1'
   ).get(slug,email.trim());
-  const actual=makeHash(password,user?.salt??dummySalt);
-  const expected=user?.password_hash??dummyHash;
-  if(!timingSafeEqual(Buffer.from(actual,'hex'),Buffer.from(expected,'hex'))||!user)return null;
+  if(!verifyPassword(user,password))return null;
   const token=randomBytes(32).toString('base64url');
   const expiresAt=new Date(Date.now()+SESSION_MS).toISOString();
   transaction(db,()=>{
