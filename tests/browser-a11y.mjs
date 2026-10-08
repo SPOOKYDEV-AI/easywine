@@ -34,13 +34,29 @@ try{
  await page.getByRole('button',{name:/Ajouter un vin/}).click();
  await page.locator('#editor[open]').waitFor();
  await scan('wine-dialog-desktop');
- await page.locator('#cancel-editor').click();
+ await page.locator('#editor input[name=producer]').fill('Domaine Accessibilité');
+ await page.locator('#editor input[name=cuvee]').fill('Cuvée accessible');
+ await page.locator('#editor input[name=price]').fill('44.00');
+ await page.locator('#editor input[name=stock]').fill('4');
+ await page.locator('#editor button[type=submit]').click();
+ await page.getByText('Cuvée accessible').waitFor();
+ await scan('cave-with-wine-desktop');
+ await page.locator('#menu [data-view=dishes]').click();
+ await page.getByRole('button',{name:/Ajouter un plat/}).click();
+ await page.locator('#editor input[name=name]').fill('Plat de dégustation');
+ await page.locator('#editor button[type=submit]').click();
+ await page.getByText('Plat de dégustation').waitFor();
+ await scan('card-with-dish-desktop');
+ await page.locator('#menu [data-view=service]').click();
+ await page.getByRole('button',{name:/Trouver les meilleurs accords/}).click();
+ await page.locator('.result-card:not(.classic)').waitFor();
+ await scan('recommendation-desktop');
  await page.locator('#menu [data-view=account]').click();
  await page.locator('.account-grid').waitFor();
  await scan('account-desktop');
  await page.setViewportSize({width:390,height:844});
  await page.locator('#mobile-nav [data-mobile-view=service]').click();
- await page.getByText('Préparons votre premier service').waitFor();
+ await page.getByRole('button',{name:/Trouver les meilleurs accords/}).waitFor();
  await scan('service-mobile');
  await page.locator('#mobile-more').click();
  await page.locator('#mobile-more-panel:not([hidden])').waitFor();
@@ -52,7 +68,8 @@ try{
   screen:x.screen,id:x.id,impact:x.impact,selectors:x.nodes.map(y=>y.target)
  }))));
  console.log('A11Y_AUDIT_COMPLETE scans='+results.length+' violations='+violations.length);
- assert.equal(results.length,7);
+ assert.equal(results.length,10);
+ assert.equal(violations.length,0,'Axe-core found WCAG A/AA regressions: '+JSON.stringify(violations));
 }finally{
  if(browser)await browser.close();
  await new Promise(done=>server.close(done));db.close();
