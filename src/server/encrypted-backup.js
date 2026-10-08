@@ -16,7 +16,11 @@ const TAG_BYTES=16;
 const MAX_CIPHERTEXT=10*1024*1024*1024;
 const tempDir=()=>mkdtempSync(join(tmpdir(),'easywine-private-'));
 const cleanup=file=>{try{unlinkSync(file);}catch(error){if(error.code!=='ENOENT')throw error;}};
-function syncFile(path){const fd=openSync(path,'r');try{fsyncSync(fd);}finally{closeSync(fd);}}
+function syncFile(path){
+  // Windows fsyncSync requires a write-capable file handle (FlushFileBuffers).
+  const fd=openSync(path,process.platform==='win32'?'r+':'r');
+  try{fsyncSync(fd);}finally{closeSync(fd);}
+}
 function syncDir(dir){
   try{const fd=openSync(dir,'r');try{fsyncSync(fd);}finally{closeSync(fd);}}
   catch(error){if(!['EINVAL','EPERM','EACCES','EISDIR','ENOTSUP'].includes(error.code))throw error;}
