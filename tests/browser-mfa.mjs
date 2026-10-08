@@ -2,6 +2,7 @@
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
 import {randomBytes} from 'node:crypto';
+import {mkdirSync} from 'node:fs';
 import {chromium} from 'playwright';
 import {openDatabase} from '../src/server/db.js';
 import {bootstrap} from '../src/server/bootstrap.js';
@@ -64,6 +65,15 @@ try{
  await page.locator('#shell:not([hidden])').waitFor();
  await page.locator('#menu [data-view=account]').click();
  await page.getByText('Second facteur actif').waitFor();
+ await page.setViewportSize({width:390,height:844});
+ await page.reload({waitUntil:'networkidle'});
+ await page.locator('#shell:not([hidden])').waitFor();
+ await page.locator('#menu [data-view=account]').click();
+ await page.getByText('Second facteur actif').waitFor();
+ const horizontalOverflow=await page.evaluate(()=>document.documentElement.scrollWidth>window.innerWidth+1);
+ assert.equal(horizontalOverflow,false,'The account security view must not overflow mobile width');
+ mkdirSync('test-artifacts',{recursive:true});
+ await page.screenshot({path:'test-artifacts/mfa-mobile.png',fullPage:true});
  assert.deepEqual(errors,[]);
  secret.fill(0);
  console.log('BROWSER_MFA_OK: enrollment, recovery codes and second-factor login');
