@@ -74,7 +74,7 @@ try{
  await page.reload({waitUntil:'networkidle'});
  await page.locator('#shell:not([hidden])').waitFor();
  await page.locator('#menu [data-view=service]').click();
- assert.equal(await page.locator('.logout-button').isVisible(),true);
+ assert.equal(await page.locator('#logout-mobile').isVisible(),true);
  await page.screenshot({path:'test-artifacts/mobile.png',fullPage:true});
  assert.deepEqual(errors,[]);
  console.log('BROWSER_SMOKE_OK: login, cave, plats, CSV, recommandations et mobile');
