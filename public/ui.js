@@ -55,7 +55,9 @@ export async function request(method,path,data){
  let result;
  try{result=await response.json();}catch{throw new Error('Réponse serveur invalide.');}
  if(!response.ok){
-  if(response.status===401&&path!=='/api/login')window.dispatchEvent(new Event('easywine:unauthorized'));
+  if(response.status===401&&
+    !['/api/login','/api/login/mfa','/api/me/mfa/confirm','/api/me/mfa/disable'].includes(path))
+   window.dispatchEvent(new Event('easywine:unauthorized'));
   throw new Error(result.error||'Erreur serveur '+response.status);
  }
  return result;
