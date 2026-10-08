@@ -14,7 +14,7 @@
     "test": "npm test"
   },
   "serve": {
-    "command": "node src/server/index.js",
+    "command": "node scripts/sandbox-audit-server.js",
     "readyPath": "/healthz",
     "startupTimeoutMs": 60000
   },
