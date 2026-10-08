@@ -75,7 +75,7 @@ test('full MFA lifecycle: enrollment, no password bypass, OTP replay, recovery a
  assert.equal(recovery.status,200);
  assert.ok(recovery.cookie);
  const again=await login();
- assert.equal((await call('POST','/api/login/mfa',{challenge:again.data.challenge,code:enabled.data.codes[2]})).status,401);
+ assert.equal((await call('POST','/api/login/mfa',{challenge:again.data.challenge,code:enabled.data.codes[1]})).status,401);
  assert.equal((await call('GET','/api/me/mfa',null,recovery.cookie)).data.recoveryCodesRemaining,6);
  // Password rotation invalidates an outstanding MFA challenge too.
  const outstanding=await login();
