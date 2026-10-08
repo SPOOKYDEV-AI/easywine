@@ -71,15 +71,35 @@ function card(entry,classic=false,sessionId=null){
  }
  return article;
 }
-export function renderService(container,{dishes}){
+export function renderService(container,{dishes,wines},{role='staff',onNavigate=()=>{}}={}){
  const active=dishes.filter(d=>d.active);
+ const canManage=role==='owner'||role==='manager';
  const headingEl=heading('Le bon accord, simplement.','Le savoir-faire de votre restaurant, adapté aux envies du client.');
  const layout=e('div',{class:'service-grid'});
  const left=e('section',{class:'panel'}),right=e('section',{class:'panel results'});
  layout.append(left,right);container.replaceChildren(headingEl,layout);
  if(!active.length){
-  left.append(empty('Aucun plat actif. Ajoutez des plats depuis « Ma carte ».'));
-  right.append(empty('Les recommandations s’afficheront ici.'));return;
+  left.append(e('div',{class:'onboarding'},
+   e('div',{class:'onboarding-mark','aria-hidden':'true',text:'✧'}),
+   e('h2',{text:'Préparons votre premier service'}),
+   e('p',{text:canManage
+    ?'Commencez par créer un plat. Ajoutez ensuite les vins réellement disponibles en cave pour obtenir des accords.'
+    :'La carte n’a pas encore de plat actif. Demandez à votre responsable de préparer le catalogue.'}),
+   canManage?e('button',{type:'button',class:'button primary',
+    text:'Créer mon premier plat →',onClick:()=>onNavigate('dishes')}):null));
+  right.append(e('div',{class:'results-placeholder'},
+   e('div',{class:'placeholder-icon',text:'✧'}),
+   e('h2',{text:'Vos conseils arriveront ici'}),
+   e('p',{text:'Une carte active et une cave renseignée suffisent pour commencer.'})));
+  return;
+ }
+ if(!wines.some(w=>w.active&&w.stock>0)){
+  const alert=e('div',{class:'onboarding-hint',role:'status'},
+   e('p',{text:'Votre cave ne contient actuellement aucune bouteille active disponible.'}),
+   canManage?e('button',{type:'button',class:'subtle-button',
+     text:'Renseigner ma cave →',onClick:()=>onNavigate('wines')}):
+     e('p',{class:'hint',text:'Contactez votre responsable pour mettre les stocks à jour.'}));
+  left.append(alert);
  }
  const chosenStyles=preferences.styles;
  left.append(e('h3',{class:'step-heading'},e('span',{class:'step',text:'01'}),'Choisir le plat'));
