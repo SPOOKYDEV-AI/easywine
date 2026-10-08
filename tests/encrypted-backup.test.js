@@ -1,13 +1,13 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtempSync,readFileSync,writeFileSync,existsSync,rmSync,readdirSync} from 'node:fs';
+import {mkdtempSync,readFileSync,writeFileSync,existsSync,rmSync,readdirSync,chmodSync} from 'node:fs';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {randomBytes} from 'node:crypto';
 import {openDatabase} from '../src/server/db.js';
 import {bootstrap} from '../src/server/bootstrap.js';
-import {backupKey,createEncryptedBackup,restoreEncryptedBackup} from '../src/server/encrypted-backup.js';
+import {backupKey,loadBackupKey,createEncryptedBackup,restoreEncryptedBackup} from '../src/server/encrypted-backup.js';
 
 const pw='Backup-Test-Only-Passphrase-2026!';
 test('encrypted backup preserves committed WAL data and restores into a NEW database',async t=>{
@@ -76,4 +76,32 @@ test('encrypted backup does not overwrite an existing unrelated target',async t=
   await assert.rejects(()=>restoreEncryptedBackup(snapshot.path,existing,key),/EEXIST/);
   assert.equal(readFileSync(existing,'utf8'),'DO NOT TOUCH');
  }finally{db.close();key.fill(0);}
+});
+
+test('unattended jobs load private key files without leaking the secret',t=>{
+ const dir=mkdtempSync(join(tmpdir(),'ew-keyfile-'));
+ t.after(()=>rmSync(dir,{recursive:true,force:true}));
+ const file=join(dir,'backup.key');
+ const key=randomBytes(32);
+ writeFileSync(file,key.toString('hex')+'\n',{mode:0o600});
+ const envKey=process.env.EASYWINE_BACKUP_KEY;
+ const envFile=process.env.EASYWINE_BACKUP_KEY_FILE;
+ try{
+  delete process.env.EASYWINE_BACKUP_KEY;
+  process.env.EASYWINE_BACKUP_KEY_FILE=file;
+  assert.deepEqual(loadBackupKey(),key);
+  process.env.EASYWINE_BACKUP_KEY=key.toString('hex');
+  assert.throws(()=>loadBackupKey(),/uniquement/);
+  delete process.env.EASYWINE_BACKUP_KEY;
+  if(process.platform!=='win32'){
+   chmodSync(file,0o644);
+   assert.throws(()=>loadBackupKey(),/chmod 600/);
+  }
+ }finally{
+  key.fill(0);
+  if(envKey===undefined)delete process.env.EASYWINE_BACKUP_KEY;
+  else process.env.EASYWINE_BACKUP_KEY=envKey;
+  if(envFile===undefined)delete process.env.EASYWINE_BACKUP_KEY_FILE;
+  else process.env.EASYWINE_BACKUP_KEY_FILE=envFile;
+ }
 });
