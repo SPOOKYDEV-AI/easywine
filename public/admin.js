@@ -127,6 +127,7 @@ export function renderDishes(container,{dishes,wines},refresh){
   const actions=e('div',{class:'item-actions'},
    e('span',{class:'pill',text:d.active?'Actif':'Inactif'}),
    e('button',{type:'button',class:'subtle-button',text:'Accord classique',onClick:()=>classicEditor(d,wines,refresh)}),
+   e('button',{type:'button',class:'subtle-button',text:'Exclusions',onClick:handle(()=>blocksEditor(d,wines,refresh))}),
    e('button',{type:'button',class:'subtle-button',text:'Modifier',onClick:()=>dishEditor(d,refresh)}));
   list.append(e('article',{class:'item-row'},
     e('div',{},e('h3',{text:d.name}),e('p',{text:d.description||'Aucune description'}),
@@ -134,6 +135,27 @@ export function renderDishes(container,{dishes,wines},refresh){
     actions));
  }
 }
+
+async function blocksEditor(d,wines,refresh){
+ const existing=await request('GET','/api/dishes/'+d.id+'/blocks');
+ edit('Exclusions · '+d.name,fields=>{
+  fields.append(e('p',{class:'muted',text:'Les vins cochés ne seront jamais suggérés pour ce plat, y compris s’ils sont en stock. L’accord de référence reste mémorisé.'}));
+  if(!wines.length)fields.append(empty('Aucun vin disponible.'));
+  const list=e('div',{class:'item-list'});
+  for(const wine of wines){
+   list.append(e('label',{class:'checkbox-label'},
+    e('input',{type:'checkbox',name:'blockedWineIds',value:wine.id,checked:existing.wineIds.includes(wine.id)}),
+    [wine.producer,wine.cuvee,wine.vintage].filter(Boolean).join(' ')));
+  }
+  fields.append(list);
+ },async form=>{
+  await request('PUT','/api/dishes/'+d.id+'/blocks',{
+   wineIds:form.getAll('blockedWineIds'),expectedVersion:existing.version
+  });
+  await refresh();
+ });
+}
+
 function dishEditor(d,refresh){
  edit(d?'Modifier le plat':'Ajouter un plat',fields=>{
   const grid=box(fields);
