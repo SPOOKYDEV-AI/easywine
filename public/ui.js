@@ -50,9 +50,19 @@ export function dismissNotice(){
  const n=byId('notification');
  clearTimeout(noticeTimer);
  n.hidden=true;
+ if(n.parentElement?.id==='editor')document.body.append(n);
 }
 export function notice(message,{error=false,type}={}){
  const n=byId('notification');
+ const editor=byId('editor');
+ // A modal dialog lives in the browser's top layer: body-level toasts would
+ // otherwise be hidden behind its backdrop. Announce errors inside the modal.
+ if(editor?.open){
+  editor.append(n);
+  editor.addEventListener('close',dismissNotice,{once:true});
+ }else if(n.parentElement!==document.body){
+  document.body.append(n);
+ }
  const kind=error?'error':type==='info'?'info':'success';
  clearTimeout(noticeTimer);
  n.dataset.type=kind;
