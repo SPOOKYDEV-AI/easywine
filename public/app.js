@@ -1,5 +1,7 @@
 
 import {byId,request,notice,handle,loadingState,errorState,withBusy} from './ui.js';
+import {viewFromHash,writeViewLocation} from './navigation.js';
+import './network-status.js';
 // Route-level code splitting: the login screen only downloads app.js and ui.js.
 // Never evaluate the full administration/statistics modules before they are needed.
 const routeModules=new Map();
@@ -28,6 +30,9 @@ let pendingMfaChallenge=null;
 let currentView='service';
 let store={wines:[],dishes:[]};
 let viewEpoch=0;
+let sessionEpoch=0;
+let storeLoadedAt=0;
+const STALE_CATALOG_MS=30_000;
 const workspace=byId('workspace');
 function closeMobileMore(){
  byId('mobile-more-panel').hidden=true;
@@ -36,6 +41,8 @@ function closeMobileMore(){
 
 
 function showLogin(){
+ sessionEpoch++;
+ storeLoadedAt=0;
  store={wines:[],dishes:[]};
  if(serviceModule)serviceModule.resetServicePreferences();
  viewEpoch++;
@@ -51,6 +58,8 @@ function showLogin(){
  byId('shell').hidden=true;
  byId('login').hidden=false;
  byId('login-form').elements.password.value='';
+ const editor=byId('editor');
+ if(editor.open)editor.close();
 }
 function showShell(){
  byId('boot').hidden=true;
@@ -72,16 +81,29 @@ function showShell(){
  byId('today').textContent=new Intl.DateTimeFormat('fr-FR',{dateStyle:'long'}).format(new Date());
 }
 async function load(){
+ const generation=sessionEpoch;
+ const restaurant=currentUser?.restaurantId;
  const [wines,dishes]=await Promise.all([
   request('GET','/api/wines'),request('GET','/api/dishes')
  ]);
+ if(generation!==sessionEpoch||currentUser?.restaurantId!==restaurant||!currentUser)return false;
  store={wines:wines.wines,dishes:dishes.dishes};
+ storeLoadedAt=Date.now();
+ return true;
 }
-async function refresh(){await load();await view(currentView);}
-async function view(name){
+async function refresh(){
+ const generation=sessionEpoch;
+ const loaded=await load();
+ if(loaded&&generation===sessionEpoch)await view(currentView);
+}
+async function view(name,{fromHistory=false,replaceHistory=false}={}){
  if(!currentUser)return;
- if(currentUser.role==='staff'&&!['service','account'].includes(name))name='service';
+ const forbidden=currentUser.role==='staff'&&!['service','account'].includes(name);
+ if(forbidden)name='service';
+ if(forbidden)writeViewLocation(name,{replace:true});
+ else if(!fromHistory)writeViewLocation(name,{replace:replaceHistory});
  const epoch=++viewEpoch;
+ const generation=sessionEpoch;
  const previousView=currentView;
  currentView=name;
  for(const button of document.querySelectorAll('#menu [data-view]')){
@@ -107,8 +129,14 @@ async function view(name){
  target.setAttribute('aria-busy','true');
  target.replaceChildren(loadingState(messages[name]||'Chargement…'));
  try{
+  // A staff member's menu and an owner's inventory must not rely forever on
+  // an old in-memory snapshot. Avoid hidden/background polling or write retries.
+  if(['service','wines','dishes'].includes(name)&&Date.now()-storeLoadedAt>STALE_CATALOG_MS){
+   const loaded=await load();
+   if(!loaded||generation!==sessionEpoch||epoch!==viewEpoch)return;
+  }
   const mod=await moduleFor(name);
-  if(epoch!==viewEpoch)return;
+  if(epoch!==viewEpoch||generation!==sessionEpoch)return;
   if(name==='service')mod.renderService(staging,store,{role:currentUser.role,onNavigate:view});
   else if(name==='wines')mod.renderWines(staging,store,refresh);
   else if(name==='dishes')mod.renderDishes(staging,store,refresh);
@@ -118,31 +146,34 @@ async function view(name){
    await mod.renderUsers(staging,{canManage:currentUser.role==='owner',refresh,currentId:currentUser.id});
    if(currentUser.role==='owner')mod.addUserButton(staging,refresh);
   }else if(name==='account')await mod.renderAccount(staging,currentUser,showLogin);
-  if(epoch!==viewEpoch)return;
+  if(epoch!==viewEpoch||generation!==sessionEpoch)return;
   target.replaceChildren(...staging.childNodes);
   if(previousView!==name)window.scrollTo(0,0);
   target.focus({preventScroll:true});
   performance.mark('easywine:view:'+name+':ready');
  }catch(error){
-  if(epoch!==viewEpoch)return;
+  if(epoch!==viewEpoch||generation!==sessionEpoch)return;
   target.replaceChildren(errorState(error?.message||'Une erreur est survenue.',()=>view(name)));
  }finally{
-  if(epoch===viewEpoch)target.setAttribute('aria-busy','false');
+  if(epoch===viewEpoch&&generation===sessionEpoch)target.setAttribute('aria-busy','false');
  }
 }
 async function enter(user){
+ sessionEpoch++;
+ storeLoadedAt=0;
  currentUser=user;
  const stamp=++viewEpoch;
+ const generation=sessionEpoch;
  showShell();
  workspace.setAttribute('aria-busy','true');
  workspace.replaceChildren(loadingState('Chargement de votre cave et de votre carte…'));
  try{
-  await load();
-  if(stamp!==viewEpoch)return;
-  await view('service');
+  const loaded=await load();
+  if(!loaded||stamp!==viewEpoch||generation!==sessionEpoch)return;
+  await view(viewFromHash(window.location.hash)||'service',{replaceHistory:true});
   performance.mark('easywine:app-ready');
  }catch(error){
-  if(stamp!==viewEpoch)return;
+  if(stamp!==viewEpoch||generation!==sessionEpoch)return;
   workspace.setAttribute('aria-busy','false');
   workspace.replaceChildren(errorState(error?.message||'Chargement impossible.',()=>enter(user)));
  }
@@ -201,6 +232,9 @@ document.addEventListener('keydown',event=>{
  if(event.key==='Escape'&&!byId('mobile-more-panel').hidden){
   closeMobileMore();byId('mobile-more').focus();event.preventDefault();
  }
+});
+window.addEventListener('popstate',()=>{
+ if(currentUser)view(viewFromHash(window.location.hash)||'service',{fromHistory:true});
 });
 const logout=handle(async()=>{
  await request('POST','/api/logout',{});
