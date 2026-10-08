@@ -12,8 +12,16 @@
  <script type="module" src="/app.js"></script>
 </head>
 <body>
- <div id="notification" role="status" aria-live="polite" hidden></div>
- <div id="login" class="login-layout">
+ <div id="notification" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+ <div id="boot" class="boot-screen" role="status" aria-live="polite" aria-label="Chargement d’EasyWine">
+  <div class="boot-content">
+   <span class="boot-brand"><span class="wine-mark" aria-hidden="true">◈</span> easywine<span class="wordmark-dot">.</span></span>
+   <div class="boot-progress" aria-hidden="true"><span></span></div>
+   <p id="boot-message">Préparation de votre espace…</p>
+  </div>
+ </div>
+ <noscript><p class="noscript-note">EasyWine nécessite JavaScript. Activez-le pour accéder à votre établissement.</p></noscript>
+ <div id="login" class="login-layout" hidden>
   <div class="login-intro">
    <span class="wordmark"><span class="wine-mark">◈</span> easywine<span class="wordmark-dot">.</span></span>
    <p class="eyebrow">L'ACCORD JUSTE, AU BON MOMENT</p>
@@ -42,7 +50,7 @@
    </form>
   </div>
  </div>
- <div id="shell" class="shell" hidden>
+ <div id="shell" class="shell" hidden aria-busy="false">
   <aside class="sidebar">
    <div class="brand"><span class="wine-mark">◈</span><span>easywine<span class="wordmark-dot">.</span></span></div>
    <p class="aside-overline">VOTRE MAISON</p>
@@ -63,7 +71,7 @@
   </aside>
   <div class="main-area">
    <header class="topbar"><span class="mobile-brand">◈ easywine<span class="wordmark-dot">.</span></span><span class="topbar-tag">CONSEIL & ACCORDS</span><span id="today"></span><button id="logout-mobile" class="mobile-logout" type="button">Quitter ↗</button></header>
-   <main id="workspace" tabindex="-1"></main>
+   <main id="workspace" tabindex="-1" aria-live="off"></main>
   </div>
  </div>
  <dialog id="editor" aria-label="Formulaire d'édition">
