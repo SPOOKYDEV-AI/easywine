@@ -49,6 +49,8 @@ jobs:
         run: node tests/browser-mfa.mjs
       - name: Verify loading, navigation, retry, reduced motion and lab metrics
         run: node tests/browser-ux.mjs
+      - name: Stress-test inventory list and responsive search
+        run: node tests/browser-scale.mjs
       - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         if: always()
         with:
