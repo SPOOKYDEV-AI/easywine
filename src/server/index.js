@@ -16,7 +16,7 @@ export function createApp({db,origin=null,secure=false}={}){
    if(req.method==='GET'&&path==='/healthz'){
     db.prepare('SELECT 1').get();json(res,200,{status:'ok'});return;
    }
-   if(req.method==='GET'&&staticFile(path,res))return;
+   if(req.method==='GET'&&staticFile(path,res,req))return;
    if(!path.startsWith('/api/'))throw new HttpError(404,'Introuvable.');
    if(!['GET','POST','PATCH','PUT'].includes(req.method))throw new HttpError(405,'Méthode non autorisée.');
    if(req.method!=='GET'){

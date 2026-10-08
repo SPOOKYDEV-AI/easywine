@@ -1,5 +1,5 @@
 
-import {byId,element as e,heading,empty,euro,request,notice,handle,field,choiceField,scale} from './ui.js';
+import {byId,element as e,heading,empty,euro,request,notice,handle,field,choiceField,scale,withBusy} from './ui.js';
 
 const colors=[['rouge','Rouge'],['blanc','Blanc'],['rose','Rosé'],['bulles','Bulles'],['doux','Vin doux']];
 const tags=['leger','frais','mineral','aromatique','gourmand','puissant','structure','original','classique','decouverte'];
@@ -8,15 +8,30 @@ function edit(title,build,save){
  byId('editor-title').textContent=title;
  const fields=byId('editor-fields');fields.replaceChildren();
  build(fields);
+ const close=()=>{if(form.dataset.saving!=='true')dialog.close();};
  form.onsubmit=handle(async event=>{
   event.preventDefault();
-  const data=new FormData(form);
-  const confirmation=await save(data);
-  dialog.close();notice(typeof confirmation==='string'?confirmation:'Modifications enregistrées.');
+  if(form.dataset.saving==='true')return;
+  const submit=form.querySelector('button[type=submit]');
+  form.dataset.saving='true';
+  dialog.setAttribute('aria-busy','true');
+  try{
+   await withBusy(submit,async()=>{
+    const data=new FormData(form);
+    const confirmation=await save(data);
+    dialog.close();
+    notice(typeof confirmation==='string'?confirmation:'Modifications enregistrées.');
+   },'Enregistrement…');
+  }finally{
+   delete form.dataset.saving;
+   dialog.removeAttribute('aria-busy');
+  }
  });
+ dialog.oncancel=event=>{if(form.dataset.saving==='true')event.preventDefault();};
  dialog.showModal();
- byId('close-editor').onclick=()=>dialog.close();
- byId('cancel-editor').onclick=()=>dialog.close();
+ (fields.querySelector('input:not([disabled]),select:not([disabled]),textarea:not([disabled])')||form.querySelector('button')).focus({preventScroll:true});
+ byId('close-editor').onclick=close;
+ byId('cancel-editor').onclick=close;
 }
 function check(parent,name,caption,checked){
  const c=e('input',{name,type:'checkbox',checked});
@@ -34,14 +49,17 @@ export function renderWines(container,{wines},refresh){
    e('div',{class:'item-actions'},e('button',{type:'button',class:'button secondary',text:'Importer CSV',onClick:()=>importEditor(refresh)}),e('button',{type:'button',class:'button primary',text:'+ Ajouter un vin',onClick:()=>wineEditor(null,refresh)}))));
  const toolbar=e('div',{class:'toolbar'});
  const search=e('input',{type:'search',placeholder:'Rechercher une cuvée, un producteur…','aria-label':'Rechercher un vin'});
+ const count=e('p',{class:'hint result-count',role:'status','aria-live':'polite'});
  toolbar.append(search);container.append(toolbar);
- const list=e('div',{class:'item-list'});container.append(list);
+ const list=e('div',{class:'item-list'});container.append(count,list);
+ let shown=80;
  function draw(){
   const term=search.value.toLocaleLowerCase('fr');
   const matches=wines.filter(w=>[w.producer,w.cuvee,w.appellation,w.vintage].join(' ').toLocaleLowerCase('fr').includes(term));
+  count.textContent=matches.length+' référence(s) trouvée(s) · '+Math.min(shown,matches.length)+' affichée(s)';
   list.replaceChildren();
   if(!matches.length){list.append(empty('Aucun vin enregistré pour cette recherche.'));return;}
-  for(const w of matches){
+  for(const w of matches.slice(0,shown)){
    list.append(e('div',{class:'item-row'},
     e('div',{},e('h3',{text:[w.producer,w.cuvee,w.vintage].filter(Boolean).join(' ')}),
       e('p',{text:[w.appellation,w.color,w.region].filter(Boolean).join(' · ')})),
@@ -51,8 +69,11 @@ export function renderWines(container,{wines},refresh){
       e('button',{type:'button',class:'subtle-button',text:'Mouvements',onClick:handle(()=>stockEditor(w,refresh))}),
       e('button',{type:'button',class:'subtle-button',text:'Modifier',onClick:()=>wineEditor(w,refresh)}))));
   }
+  if(shown<matches.length)list.append(e('button',{type:'button',class:'button secondary load-more',
+   text:'Afficher les '+Math.min(80,matches.length-shown)+' références suivantes',
+   onClick:()=>{shown+=80;draw();}}));
  }
- search.addEventListener('input',draw);draw();
+ search.addEventListener('input',()=>{shown=80;draw();});draw();
 }
 
 function importEditor(refresh){
