@@ -6,6 +6,7 @@ import {recommend} from '../core/pairing.js';
 import {HttpError,fail,object,text,number,wineInput,dishInput,preferences} from './validation.js';
 import {parseWineCsv,signature} from './import-csv.js';
 import {recordSuggestions,selectWine,wineStatistics} from './service-history.js';
+import {STOCK_REASONS,stockMovement,stockHistory,previousStockRequest} from './stock-ledger.js';
 
 
 const loginAttempts=new Map();
@@ -174,6 +175,7 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
         current.add(sig);
         const key=randomUUID();
         saveWine(db,tenant,key,row.wine,null);
+        stockMovement(db,user,key,0,row.wine.stock,'import','Import CSV validé');
         record(db,user,'import','wine',key,undefined,row.wine);
       }
     });
@@ -182,7 +184,11 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
   if(method==='POST'&&path==='/api/wines'){
     assertRole(user,'owner','manager');
     const w=wineInput(body),key=randomUUID();
-    transaction(db,()=>{saveWine(db,tenant,key,w,null);record(db,user,'create','wine',key,undefined,w);});
+    transaction(db,()=>{
+      saveWine(db,tenant,key,w,null);
+      stockMovement(db,user,key,0,w.stock,'opening','Stock initial déclaré');
+      record(db,user,'create','wine',key,undefined,w);
+    });
     return {status:201,body:{wine:getWine(db,tenant,key)}};
   }
   if(method==='POST'&&path==='/api/dishes'){
@@ -197,9 +203,52 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     const prior=getWine(db,tenant,match[1]),o=object(body);
     const version=number(o.expectedVersion,'Version',1,2147483647);
     const updated=wineInput(o,prior);
-    transaction(db,()=>{saveWine(db,tenant,prior.id,updated,version);
-      record(db,user,'update','wine',prior.id,prior,updated);});
+    transaction(db,()=>{
+      saveWine(db,tenant,prior.id,updated,version);
+      if(updated.stock!==prior.stock)
+        stockMovement(db,user,prior.id,prior.stock,updated.stock,'manual','Modification de la fiche cave');
+      record(db,user,'update','wine',prior.id,prior,updated);
+    });
     return {body:{wine:getWine(db,tenant,prior.id)}};
+  }
+
+  match=path.match(/^\/api\/wines\/([0-9a-f-]{36})\/stock-movements$/);
+  if(method==='GET'&&match){
+    assertRole(user,'owner','manager');
+    getWine(db,tenant,match[1]);
+    return {body:{movements:stockHistory(db,tenant,match[1])}};
+  }
+  if(method==='POST'&&match){
+    assertRole(user,'owner','manager');
+    const o=object(body);
+    const delta=number(o.delta,'Variation',-1000000,1000000);
+    if(delta===0)fail('Variation nulle, aucun mouvement à enregistrer.');
+    if(!STOCK_REASONS.includes(o.reason))fail('Motif de mouvement invalide.');
+    const note=text(o.note,'Justification',240);
+    const key=text(o.requestKey,'Clé de requête',36);
+    if(!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(key))
+      fail('Clé de requête invalide.');
+    const version=number(o.expectedVersion,'Version',1,2147483647);
+    return {body:transaction(db,()=>{
+      const previous=previousStockRequest(db,tenant,key);
+      if(previous){
+        if(previous.wine_id!==match[1]||previous.delta!==delta||
+           previous.reason!==o.reason||previous.note!==note)
+          fail('Cette clé de requête a déjà été utilisée pour un autre mouvement.',409);
+        return {wine:getWine(db,tenant,match[1]),alreadyApplied:true,movementId:previous.id};
+      }
+      const prior=getWine(db,tenant,match[1]);
+      if(prior.version!==version)fail('Stock modifié depuis votre dernière lecture. Rechargez la cave.',409);
+      const after=prior.stock+delta;
+      if(!Number.isSafeInteger(after)||after<0||after>1000000)
+        fail('Le mouvement produirait un stock invalide.',409);
+      const updated={...prior,stock:after};
+      saveWine(db,tenant,prior.id,updated,version);
+      const movementId=stockMovement(db,user,prior.id,prior.stock,after,o.reason,note,key);
+      record(db,user,'stock-adjust','wine',prior.id,{stock:prior.stock},
+        {stock:after,delta,reason:o.reason,note,movementId});
+      return {wine:getWine(db,tenant,match[1]),alreadyApplied:false,movementId};
+    })};
   }
   match=path.match(/^\/api\/dishes\/([0-9a-f-]{36})$/);
   if(method==='PATCH'&&match){
