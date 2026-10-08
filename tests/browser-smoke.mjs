@@ -36,7 +36,8 @@ try{
  const page=await browser.newPage({viewport:{width:1024,height:768}});
  const errors=[];
  page.on('pageerror',error=>errors.push(error.message));
- page.on('console',message=>{if(message.type()==='error')errors.push(message.text());});
+ page.on('response',response=>{if(response.status()>=400 && !(response.status()===401 && response.url().endsWith('/api/me')))errors.push('HTTP '+response.status()+' '+response.url());});
+ page.on('requestfailed',request=>errors.push(request.failure()?.errorText||'Failed network request'));
  await page.goto(origin,{waitUntil:'networkidle'});
  await page.locator('input[name=slug]').fill('browser-e2e');
  await page.locator('input[name=email]').fill('owner@example.fr');
