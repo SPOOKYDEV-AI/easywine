@@ -100,7 +100,7 @@ let requestScope=0;
 export function rotateRequestScope(){
  requestScope++;
 }
-export async function request(method,path,data){
+export async function request(method,path,data,{signal}={}){
  const scope=requestScope;
  const init={method,credentials:'same-origin',headers:{}};
  if(method!=='GET'){
@@ -110,9 +110,12 @@ export async function request(method,path,data){
  }
  let response;
  try{
-  init.signal=AbortSignal.timeout(15000);
+  // User-driven criteria changes cancel only their own read-like operation.
+  // No connectivity error should be raised for an intentional abort.
+  init.signal=signal?AbortSignal.any([signal,AbortSignal.timeout(15000)]):AbortSignal.timeout(15000);
   response=await fetch(path,init);
  }catch(error){
+  if(signal?.aborted)throw error;
   if(scope===requestScope)window.dispatchEvent(new Event('easywine:network-failed'));
   const caution=method==='GET'
    ?'Vous pouvez réessayer.'
@@ -121,9 +124,13 @@ export async function request(method,path,data){
    throw new Error('Le serveur tarde à répondre. '+caution);
   throw new Error('Connexion au serveur indisponible. '+caution);
  }
+ if(scope!==requestScope)throw new Error('La session a changé pendant la requête.');
  if(scope===requestScope)window.dispatchEvent(new Event('easywine:network-ok'));
  let result;
  try{result=await response.json();}catch{throw new Error('Réponse serveur invalide.');}
+ // The HTTP body may arrive after logout or a different restaurant login.
+ // Never resolve a successful stale action into the new session's interface.
+ if(scope!==requestScope)throw new Error('La session a changé pendant la requête.');
  if(!response.ok){
   if(scope===requestScope&&response.status===401&&
     !['/api/login','/api/login/mfa','/api/me/mfa/confirm','/api/me/mfa/disable'].includes(path))

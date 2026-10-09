@@ -124,8 +124,12 @@ export function renderService(container,{dishes,wines},{role='staff',onNavigate=
  }
  const chosenStyles=preferences.styles;
  let criteriaVersion=0;
+ let pendingRecommendation=null;
  function criteriaChanged(){
   criteriaVersion++;
+  // A waiter can change the dish while the tablet's Wi-Fi is slow. Unblock
+  // a fresh search immediately instead of holding the CTA for 15 seconds.
+  pendingRecommendation?.abort();
   right.setAttribute('aria-busy','false');
   right.replaceChildren(recommendationPrompt(true));
  }
@@ -154,16 +158,20 @@ export function renderService(container,{dishes,wines},{role='staff',onNavigate=
    right.setAttribute('aria-busy','true');
    right.replaceChildren(loadingState('Recherche des vins réellement disponibles…'));
    const budget=budgets.find(b=>b[0]===preferences.budget);
+   const controller=new AbortController();
+   pendingRecommendation=controller;
    let data;
    try{
     data=await request('POST','/api/recommend',{
      dishId:dishSelect.value,styles:[...chosenStyles],color:preferences.color||null,
      minPriceCents:budget[2],maxPriceCents:budget[3]
-    });
+    },{signal:controller.signal});
    }catch(error){
-    if(submittedVersion===criteriaVersion&&right.isConnected)
+    if(!controller.signal.aborted&&submittedVersion===criteriaVersion&&right.isConnected)
      right.replaceChildren(errorState(error?.message||'Erreur de recommandation.',()=>submit.click()));
     return;
+   }finally{
+    if(pendingRecommendation===controller)pendingRecommendation=null;
    }
    // A delayed response belongs to the submitted criteria, not later edits.
    // Never display it under a new selection or in a detached route.

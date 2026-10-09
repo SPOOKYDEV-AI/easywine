@@ -57,6 +57,8 @@ jobs:
         run: node tests/browser-onboarding.mjs
       - name: Verify mobile navigation and accessibility
         run: node tests/browser-mobile-nav.mjs
+      - name: Exercise finger-first tablet service, orientation and interrupted recommendations
+        run: node tests/browser-tablet-service.mjs
       - name: Verify network resilience and browser history
         run: node tests/browser-network-history.mjs
       - name: Audit WCAG 2.2 A/AA across real workflows

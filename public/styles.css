@@ -117,10 +117,10 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  #menu .nav-link{scroll-snap-align:start;flex-shrink:0}
 }
 
-/* Mobile navigation: direct routes in a thumb-reachable bar; secondary routes
-   in an accessible, non-scrollable overflow panel. Desktop sidebar unchanged. */
+/* Phone and coarse-pointer 7–10″ tablets share the thumb dock.
+   A tablet with a mouse/trackpad still gets the desktop sidebar. */
 .mobile-nav,.mobile-more-panel{display:none}
-@media(max-width:680px){
+@media(max-width:680px), (min-width:681px) and (max-width:1100px) and (any-pointer:coarse){
  .shell .sidebar{display:none}
  .shell .main-area{padding-bottom:calc(82px + env(safe-area-inset-bottom,0px))}
  .mobile-nav{
@@ -160,6 +160,37 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  html{scroll-padding-bottom:calc(90px + env(safe-area-inset-bottom,0px))}
 }
 
+/* Tablettes de commande : garder toute la largeur utile au conseil,
+   placer Quitter à portée et éviter les deux panneaux écrasés en paysage. */
+@media (min-width:681px) and (max-width:1100px) and (any-pointer:coarse){
+ .shell{display:block}
+ .topbar{height:62px}
+ .topbar .mobile-brand{display:block}
+ .topbar .topbar-tag{display:none}
+ .mobile-logout{display:inline-flex;align-items:center;min-height:48px;
+  color:#682c3c;background:#f4e9e8;border:0;padding:.65rem .9rem;
+  border-radius:10px;font-size:.85rem;font-weight:700}
+ #workspace{padding:clamp(.9rem,2.25vw,1.6rem)}
+ .page-header{margin-bottom:1.15rem}
+ .page-header h1{font-size:clamp(2rem,3.2vw,2.7rem)}
+ .service-grid>.panel:last-child{scroll-margin-top:1rem}
+}
+@media (min-width:960px) and (max-width:1100px) and (any-pointer:coarse){
+ .service-grid{grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:.95rem}
+ .service-grid>.panel{padding:1.15rem}
+}
+/* Finger-first targets: 48px is our operational standard, above WCAG's
+   24px minimum. This rule follows the input type, not a guessed screen width. */
+@media (any-pointer:coarse){
+ .chip,.button,.choice-button,.subtle-button,.icon-button,.mobile-logout,
+ .logout-button,.nav-link,.feedback-dismiss{min-height:48px}
+ .chip{min-height:49px;padding:.75rem 1.05rem}
+ .chip,button,select,summary{touch-action:manipulation}
+ select,input,textarea{min-height:50px;font-size:16px}
+ .service-grid select{height:54px;min-height:54px}
+ .optional-filters summary,.result-card summary{min-height:48px;padding-block:.65rem}
+ .choice-button{width:100%;margin-right:0}
+}
 /* Explicit connectivity state, independent of unreliable navigator.onLine. */
 .network-status{
  position:fixed;top:.65rem;left:50%;transform:translateX(-50%);
