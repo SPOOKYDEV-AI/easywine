@@ -34,6 +34,9 @@ un mode hors-ligne qui afficherait des stocks périmés.
   mouvements de stock et choix de vin ne sont **jamais** rejoués automatiquement.
 - Verrou de confidentialité local après 10 minutes sans interaction et
   refus serveur après 15 minutes d'inactivité, y compris après veille.
+- Verrouillage synchronisé entre les fenêtres et onglets du même profil :
+  une déconnexion révoque également l'interface déjà ouverte ailleurs via
+  `storage`, et un retour de veille recontrôle le verrou avant toute reprise.
 
 ## Checklist de recette sur matériel réel (non encore attestée)
 
