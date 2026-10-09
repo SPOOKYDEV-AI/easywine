@@ -50,7 +50,8 @@ try{
     dockVisible:getComputedStyle(dock).display!=='none'&&!dock.hidden,
     sidebarVisible:getComputedStyle(document.querySelector('.sidebar')).display!=='none',
     dockButtons:[...dock.querySelectorAll('button:not([hidden])')].map(el=>el.getBoundingClientRect().height),
-    chips:[...document.querySelectorAll('.chip')].map(el=>el.getBoundingClientRect().height),
+    chips:[...document.querySelectorAll('.chip')].filter(el=>el.getClientRects().length>0)
+     .map(el=>el.getBoundingClientRect().height),
     selects:[...document.querySelectorAll('.service-grid select')].map(el=>el.getBoundingClientRect().height),
     left:left.getBoundingClientRect().toJSON(),right:right.getBoundingClientRect().toJSON(),
     overflow:Math.max(0,document.documentElement.scrollWidth-innerWidth),
@@ -62,7 +63,8 @@ try{
   assert.equal(geometry.sidebarVisible,false,`Sidebar must not waste ${width}px tablet space`);
   assert.equal(geometry.logoutVisible,true,'Session exit must remain reachable');
   assert.ok(geometry.dockButtons.every(h=>h>=48),'Dock targets >=48 CSS px');
-  assert.ok(geometry.chips.every(h=>h>=48),'Preference chips >=48 CSS px');
+  assert.ok(geometry.chips.length>=6,'At least six visible primary filters');
+  assert.ok(geometry.chips.every(h=>h>=48),'Visible preference chips >=48 CSS px: '+JSON.stringify(geometry.chips));
   assert.ok(geometry.selects.every(h=>h>=50),'Selectors >=50 CSS px: '+JSON.stringify(geometry.selects));
   assert.ok(geometry.overflow<=1,`No horizontal overflow at ${width}`);
   if(landscape)assert.ok(Math.abs(geometry.left.y-geometry.right.y)<3,'Landscape must show both service panels side by side');
@@ -72,6 +74,12 @@ try{
  await assertTablet({width:1024,height:768,landscape:true});
  await assertTablet({width:600,height:960,landscape:false});
  await assertTablet({width:800,height:1280,landscape:false});
+ await page.locator('.optional-filters summary').tap();
+ const advancedHeights=await page.locator('.optional-filters .chip').evaluateAll(nodes=>
+  nodes.filter(el=>el.getClientRects().length>0).map(el=>el.getBoundingClientRect().height));
+ assert.ok(advancedHeights.length>=3,'Expanded advanced options must be interactive');
+ assert.ok(advancedHeights.every(h=>h>=48),'Expanded touch options >=48 CSS px: '+JSON.stringify(advancedHeights));
+ await page.locator('.optional-filters summary').tap();
  const firstChip=page.locator('.chip').filter({hasText:'Léger'}).first();
  await firstChip.tap();
  assert.equal(await firstChip.getAttribute('aria-pressed'),'true');
