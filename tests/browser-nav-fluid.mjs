@@ -27,6 +27,10 @@ try{
  await page.getByText('Préparons votre premier service').waitFor();
 
  // Monitor actual loading node insertion, not an estimated time or screenshot.
+ // Real pointer intent can fetch the administration module before the click.
+ await page.locator('#menu [data-view=wines]').hover();
+ await page.waitForFunction(()=>performance.getEntriesByType('resource')
+  .some(entry=>new URL(entry.name).pathname==='/admin.js'));
  await page.evaluate(()=>{
   window.__fluidLoaderInsertions=0;
   const root=document.getElementById('workspace');
@@ -95,7 +99,7 @@ try{
  await page.getByRole('button',{name:/Ajouter un vin/}).waitFor();
  releaseDelay();
  await page.waitForTimeout(250);
- assert.equal(await page.getByText('Historique des opérations').count(),0);
+ assert.equal(await page.locator('#workspace > .page-header h1').filter({hasText:'Historique'}).count(),0);
  assert.equal(await page.locator('#menu [data-view=wines]').getAttribute('aria-current'),'page');
  assert.equal(await page.locator('#workspace').getAttribute('aria-busy'),'false');
  await page.unroute('**/api/audit');
