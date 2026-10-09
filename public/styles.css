@@ -202,19 +202,27 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .boot-brand{font-family:Georgia,serif;letter-spacing:-.045em;font-weight:600}
 .boot-accent{display:block;width:30px;height:1px;background:#b99981;margin:1.5rem auto 0}
 .wine-glass{display:block;flex:0 0 auto;overflow:visible}
-.wine-glass--hero{width:112px;height:154px}
-.wine-glass--inline{width:62px;height:85px}
-.wine-glass--mini{width:18px;height:24px}
+.wine-glass--hero{width:136px;height:204px}
+.wine-glass--inline{width:64px;height:96px}
+.wine-glass--mini{width:18px;height:27px}
 /* Physically coherent fill: translated fluid is clipped to the inner bowl.
    A static glass renders before JS. No extra request or WebGL context. */
-.wine-glass__fill{transform:translateY(46px);animation:wine-pour 1.12s cubic-bezier(.18,.75,.24,1) both}
+.wine-glass__fill{transform:translateY(70px);animation:wine-pour 1.26s cubic-bezier(.18,.75,.24,1) both}
 .wine-glass__swell{transform-box:fill-box;transform-origin:center top;animation:wine-tide 2.9s 1.12s ease-in-out infinite}
 .wine-glass__surface{animation:wine-surface .5s .35s ease-out both}
 .wine-glass__liquid-glint,.wine-glass__caustic{opacity:0;animation:wine-liquid-light .7s .65s ease-out both}
-.wine-glass__rim{opacity:.92}
-.wine-glass__outline{stroke:#927871}
-.wine-glass__highlight{opacity:.85}
-@keyframes wine-pour{from{transform:translateY(46px)}to{transform:translateY(0)}}
+.wine-glass__rim{opacity:1}
+.wine-glass__highlight{opacity:1}
+.wine-glass__rim-shine{opacity:.9}
+.wine-glass__left-refraction{animation:wine-crystal-shimmer 4.4s 1.3s ease-in-out infinite}
+@keyframes wine-crystal-shimmer{0%,100%{opacity:.76}50%{opacity:1}}
+/* Tiny buttons retain the silhouette without microscopic glints and gradients. */
+.wine-glass--mini .wine-glass__base-shadow,.wine-glass--mini .wine-glass__bowl-inner,
+.wine-glass--mini .wine-glass__rim-shine,.wine-glass--mini .wine-glass__foot-rim,
+.wine-glass--mini .wine-glass__foot-glint,.wine-glass--mini .wine-glass__caustic,
+.wine-glass--mini .wine-glass__wine-light,.wine-glass--mini .wine-glass__left-refraction,
+.wine-glass--mini .wine-glass__right-refraction{display:none}
+@keyframes wine-pour{from{transform:translateY(70px)}to{transform:translateY(0)}}
 @keyframes wine-surface{from{opacity:.3}to{opacity:1}}
 @keyframes wine-liquid-light{from{opacity:0}to{opacity:1}}
 /* Restrained meniscus shimmer continues only while the loader is mounted. */
@@ -234,6 +242,8 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .button.primary.is-busy .wine-glass__outline,.button.primary.is-busy .wine-glass__rim{stroke:#fff9f4}
 .button.primary.is-busy .wine-glass__liquid-glint,.button.primary.is-busy .wine-glass__edge-glint,.button.primary.is-busy .wine-glass__caustic{stroke:#fce7df}
 .button.primary.is-busy .wine-glass__bowl-tint{fill:rgba(255,255,255,.045)}
+.button.primary.is-busy .wine-glass__stem,.button.primary.is-busy .wine-glass__foot{fill:#fff7f1;stroke:#fff9f4}
+.button.primary.is-busy .wine-glass__wine-edge{stroke:#fff4e9}
 .result-card{animation:lux-result-in .25s cubic-bezier(.22,.65,.3,1) both}
 @keyframes lux-result-in{from{opacity:.5;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
 #notification{
@@ -259,11 +269,11 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 .result-confirmation::before{content:"✓";width:22px;height:22px;border-radius:50%;display:grid;place-items:center;background:#f1e5e5;color:#682c3c;font-weight:800}
 @media(max-width:680px){
  #notification{top:auto;left:.75rem;right:.75rem;bottom:calc(84px + env(safe-area-inset-bottom,0px));width:auto}
- .wine-glass--hero{width:95px;height:132px}
+ .wine-glass--hero{width:112px;height:168px}
  .boot-glass{margin:.9rem 0 .5rem}
 }
 @media(prefers-reduced-motion:reduce){
- .wine-glass__fill,.wine-glass__swell,.wine-glass__surface,.wine-glass__liquid-glint,.wine-glass__caustic,.result-card,#notification{animation:none!important}
+ .wine-glass__fill,.wine-glass__swell,.wine-glass__surface,.wine-glass__liquid-glint,.wine-glass__caustic,.wine-glass__left-refraction,.result-card,#notification{animation:none!important}
  .wine-glass__fill,.wine-glass__swell{transform:none!important}
  .wine-glass__liquid-glint,.wine-glass__caustic{opacity:1}
  .button.is-busy .wine-glass{animation:none!important}

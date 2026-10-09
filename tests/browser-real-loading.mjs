@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import {once} from 'node:events';
+import {mkdirSync} from 'node:fs';
 import {chromium} from 'playwright';
 import {openDatabase} from '../src/server/db.js';
 import {bootstrap} from '../src/server/bootstrap.js';
@@ -58,8 +59,15 @@ try{
  assert.equal(await page.locator('#boot').isVisible(),true);
  const glass=page.locator('#boot .wine-glass--hero');
  assert.equal(await glass.count(),1);
- for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__edge-glint','wine-glass__fill','wine-glass__swell'])
+ for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__edge-glint','wine-glass__fill','wine-glass__swell','wine-glass__bowl-inner','wine-glass__stem','wine-glass__foot','wine-glass__wine-light'])
   assert.equal(await glass.locator('.'+cls).count(),1);
+ const dimensions=await glass.evaluate(svg=>({
+  viewBox:svg.getAttribute('viewBox'),
+  wineStops:svg.querySelectorAll('[id$="-wine"] stop').length,
+  stemStops:svg.querySelectorAll('[id$="-stem"] stop').length,
+  radialGlows:svg.querySelectorAll('radialGradient').length
+ }));
+ assert.deepEqual(dimensions,{viewBox:'0 0 120 180',wineStops:5,stemStops:4,radialGlows:2});
 
  // The pour finishes, but restrained surface movement persists until HTTP
  // completion. A genuine slow response changes text, not a fake percentage.
@@ -67,6 +75,8 @@ try{
  assert.equal(await page.locator('#boot .wine-glass__swell').evaluate(el=>
   el.getAnimations().some(a=>a.animationName==='wine-tide'&&a.playState==='running')),true);
  assert.equal(await page.locator('#boot').innerText().then(s=>s.includes('%')),false);
+ mkdirSync('test-artifacts',{recursive:true});
+ await page.locator('#boot').screenshot({path:'test-artifacts/crystal-glass-v4.png'});
  releaseDish();
  await page.locator('#shell:not([hidden])').waitFor();
  await page.unroute('**/api/dishes');
