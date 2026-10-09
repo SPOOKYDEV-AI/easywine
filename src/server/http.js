@@ -14,7 +14,12 @@ const assets={
   '/navigation.js':['navigation.js','text/javascript; charset=utf-8'],
   '/network-status.js':['network-status.js','text/javascript; charset=utf-8'],
   '/styles.css':['styles.css','text/css; charset=utf-8'],
-  '/favicon.svg':['favicon.svg','image/svg+xml']
+  '/favicon.svg':['favicon.svg','image/svg+xml'],
+  '/manifest.webmanifest':['manifest.webmanifest','application/manifest+json; charset=utf-8'],
+  '/icon-192.png':['icon-192.png','image/png'],
+  '/icon-512.png':['icon-512.png','image/png'],
+  '/icon-180.png':['icon-180.png','image/png'],
+  '/icon-maskable-512.png':['icon-maskable-512.png','image/png']
 };
 export const headers={
  'X-Content-Type-Options':'nosniff',
@@ -22,7 +27,7 @@ export const headers={
  'Referrer-Policy':'no-referrer',
  'Permissions-Policy':'camera=(), microphone=(), geolocation=()',
  'Cache-Control':'no-store',
- 'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; font-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+ 'Content-Security-Policy':"default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; connect-src 'self'; font-src 'self'; manifest-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 };
 export function json(res,status,data,extra={}){
  res.writeHead(status,{...headers,'Content-Type':'application/json; charset=utf-8',...extra});
