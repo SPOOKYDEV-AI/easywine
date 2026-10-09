@@ -70,6 +70,40 @@ try{
  releaseDish();
  await page.locator('#shell:not([hidden])').waitFor();
  await page.unroute('**/api/dishes');
+ // Unique SVG IDs must survive multiple simultaneous loading components.
+ // Two cloned glasses may never reference one another's gradient or bowl mask.
+ const isolation=await page.evaluate(async()=>{
+  const {wineGlass}=await import('/ui.js');
+  const host=document.createElement('div');
+  host.style.position='absolute';
+  host.style.left='-9999px';
+  document.body.append(host);
+  host.append(wineGlass('inline'),wineGlass('mini'),wineGlass('inline'));
+  const glasses=[...host.querySelectorAll('svg')];
+  const ids=glasses.flatMap(svg=>[...svg.querySelectorAll('[id]')].map(el=>el.id));
+  const referenceProblems=[];
+  for(const svg of glasses){
+   for(const el of svg.querySelectorAll('[clip-path],[fill]')){
+    const attr=el.getAttribute('clip-path')||el.getAttribute('fill');
+    const match=/^url\(#([^)]+)\)$/.exec(attr||'');
+    if(match&&!svg.querySelector('[id="'+match[1]+'"]'))
+     referenceProblems.push(match[1]);
+   }
+  }
+  const details=glasses.map(svg=>({
+   clip:svg.querySelector('.wine-glass__fill').parentElement.getAttribute('clip-path'),
+   gradient:svg.querySelector('.wine-glass__liquid').getAttribute('fill')
+  }));
+  host.remove();
+  return {count:glasses.length,ids,referenceProblems,details};
+ });
+ assert.equal(isolation.count,3);
+ assert.equal(new Set(isolation.ids).size,isolation.ids.length,'No duplicate clip or gradient IDs');
+ assert.deepEqual(isolation.referenceProblems,[],'Each SVG must resolve its own references');
+ for(const detail of isolation.details){
+  assert.match(detail.clip,/^url\(#ew-glass-/);
+  assert.match(detail.gradient,/^url\(#ew-glass-/);
+ }
  await page.getByRole('button',{name:/Trouver les meilleurs accords/}).waitFor();
  assert.equal(await page.locator('#boot').isVisible(),false);
 
