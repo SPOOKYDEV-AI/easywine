@@ -13,6 +13,10 @@
 </head>
 <body>
  <div id="notification" role="status" aria-live="polite" aria-atomic="true" hidden></div>
+ <div id="session-idle-warning" class="session-idle-warning" role="status" aria-live="polite" hidden>
+  <span>Votre session se verrouillera bientôt pour protéger les informations de l’établissement.</span>
+  <button id="session-idle-continue" type="button" class="subtle-button">Continuer le service</button>
+ </div>
  <div id="network-status" class="network-status" role="status" aria-live="polite" aria-atomic="true" hidden>
   <span id="network-status-text"></span>
   <button id="network-retry" type="button" class="subtle-button">Vérifier la connexion</button>
