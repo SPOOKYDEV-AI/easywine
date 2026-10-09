@@ -3,7 +3,7 @@ import {randomUUID} from 'node:crypto';
 import {now,transaction} from './db.js';
 import {fail} from './validation.js';
 
-export function recordSuggestions(db,actor,dish,classic,recommendations){
+export function recordSuggestions(db,actor,dish,classic,recommendations,{insideTransaction=false}={}){
   const selected=[];
   if(classic?.available)selected.push({wine:classic.wine,source:'classic',rank:null,score:null});
   for(const recommendation of recommendations){
@@ -12,13 +12,15 @@ export function recordSuggestions(db,actor,dish,classic,recommendations){
   }
   if(!selected.length)return null;
   const sessionId=randomUUID();
-  transaction(db,()=>{
+  const save=()=>{
     db.prepare('INSERT INTO service_sessions(id,restaurant_id,actor_id,dish_id,created_at) VALUES(?,?,?,?,?)')
       .run(sessionId,actor.restaurant_id,actor.id,dish.id,now());
     const add=db.prepare('INSERT INTO service_options(restaurant_id,session_id,wine_id,source,rank,score) VALUES(?,?,?,?,?,?)');
     for(const item of selected)
       add.run(actor.restaurant_id,sessionId,item.wine.id,item.source,item.rank??null,item.score??null);
-  });
+  };
+  if(insideTransaction)save();
+  else transaction(db,save);
   return sessionId;
 }
 export function selectWine(db,actor,sessionId,wineId){

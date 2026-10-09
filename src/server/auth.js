@@ -4,6 +4,7 @@ import {promisify} from 'node:util';
 import {id,now,transaction} from './db.js';
 
 const SESSION_MS=12*60*60*1000;
+export const SESSION_IDLE_MS=15*60*1000;
 const hashToken=token=>createHash('sha256').update(token).digest('hex');
 const makeHash=(password,salt)=>scryptSync(password,Buffer.from(salt,'hex'),64).toString('hex');
 const scryptAsync=promisify(scrypt);
@@ -56,8 +57,8 @@ export function issueSession(db,user,{insideTransaction=false}={}){
   const expiresAt=new Date(Date.now()+SESSION_MS).toISOString();
   const save=()=>{
     db.prepare('DELETE FROM sessions WHERE expires_at<?').run(now());
-    db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)')
-      .run(hashToken(token),user.id,expiresAt);
+    db.prepare('INSERT INTO sessions(token_hash,user_id,expires_at,last_seen_at) VALUES(?,?,?,?)')
+      .run(hashToken(token),user.id,expiresAt,now());
   };
   if(insideTransaction)save();
   else transaction(db,save);
@@ -72,9 +73,18 @@ export function getUser(db,cookie){
   if(!raw)return null;
   const token=raw.slice('ew_session='.length);
   if(!/^[A-Za-z0-9_-]{43}$/.test(token))return null;
-  return db.prepare(
-    'SELECT u.*,r.slug,r.name AS restaurant_name FROM sessions s JOIN users u ON u.id=s.user_id JOIN restaurants r ON r.id=u.restaurant_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1'
-  ).get(hashToken(token),now())||null;
+  const stamp=now(),tokenHash=hashToken(token);
+  const cutoff=new Date(Date.now()-SESSION_IDLE_MS).toISOString();
+  const user=db.prepare(
+    'SELECT u.*,r.slug,r.name AS restaurant_name FROM sessions s JOIN users u ON u.id=s.user_id JOIN restaurants r ON r.id=u.restaurant_id WHERE s.token_hash=? AND s.expires_at>? AND s.last_seen_at>? AND u.active=1'
+  ).get(tokenHash,stamp,cutoff);
+  if(!user){
+    db.prepare('DELETE FROM sessions WHERE token_hash=? AND (expires_at<=? OR last_seen_at<=?)')
+      .run(tokenHash,stamp,cutoff);
+    return null;
+  }
+  db.prepare('UPDATE sessions SET last_seen_at=? WHERE token_hash=?').run(stamp,tokenHash);
+  return user;
 }
 export function logout(db,cookie){
   const raw=(cookie||'').split(';').map(s=>s.trim()).find(s=>s.startsWith('ew_session='));

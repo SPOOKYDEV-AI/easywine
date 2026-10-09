@@ -35,6 +35,63 @@ let sessionEpoch=0;
 let storeLoadedAt=0;
 const STALE_CATALOG_MS=30_000;
 const workspace=byId('workspace');
+const DEVICE_LOCK_KEY='easywine:shared-device-locked';
+const CLIENT_WARN_MS=8*60*1000;
+const CLIENT_LOCK_MS=10*60*1000; // Server separately enforces 15 minutes.
+let lastActivity=Date.now(),idleWarningTimer,privacyLockTimer;
+let logoutInFlight=Promise.resolve();
+function markDeviceLocked(){
+ try{localStorage.setItem(DEVICE_LOCK_KEY,'1');}catch{ /* Server idle expiry remains authoritative. */ }
+}
+function clearDeviceLock(){
+ try{localStorage.removeItem(DEVICE_LOCK_KEY);}catch{}
+}
+function isDeviceLocked(){
+ try{return localStorage.getItem(DEVICE_LOCK_KEY)==='1';}catch{return false;}
+}
+function clearIdleTimers(){
+ clearTimeout(idleWarningTimer);
+ clearTimeout(privacyLockTimer);
+ byId('session-idle-warning').hidden=true;
+}
+function revokeSharedSession(){
+ if(!currentUser)return;
+ markDeviceLocked();
+ // Start remote revocation while preserving the HttpOnly cookie; only the
+ // server can delete it. On an offline tablet the persistent local lock keeps
+ // subsequent reloads at the login screen until explicit authentication.
+ logoutInFlight=fetch('/api/logout',{method:'POST',credentials:'same-origin',
+  headers:{'Content-Type':'application/json','X-EasyWine-Request':'1'},
+  body:'{}',signal:AbortSignal.timeout(5000)}).catch(()=>{});
+ showLogin(); // Clear sensitive tenant DOM synchronously, even without Wi-Fi.
+}
+function checkSessionIdle(){
+ if(!currentUser)return;
+ clearTimeout(idleWarningTimer);
+ clearTimeout(privacyLockTimer);
+ const elapsed=Math.max(0,Date.now()-lastActivity);
+ if(elapsed>=CLIENT_LOCK_MS){revokeSharedSession();return;}
+ byId('session-idle-warning').hidden=elapsed<CLIENT_WARN_MS;
+ if(elapsed<CLIENT_WARN_MS)
+  idleWarningTimer=setTimeout(checkSessionIdle,CLIENT_WARN_MS-elapsed);
+ privacyLockTimer=setTimeout(checkSessionIdle,CLIENT_LOCK_MS-elapsed);
+}
+function recordActivity(){
+ if(!currentUser)return;
+ lastActivity=Date.now();
+ byId('session-idle-warning').hidden=true;
+ checkSessionIdle();
+}
+document.addEventListener('pointerdown',recordActivity,{passive:true});
+document.addEventListener('keydown',recordActivity);
+window.addEventListener('focus',checkSessionIdle);
+document.addEventListener('visibilitychange',()=>{
+ if(!document.hidden)checkSessionIdle();
+});
+byId('session-idle-continue').addEventListener('click',handle(async()=>{
+ await request('GET','/api/me'); // Only explicit human confirmation renews server activity.
+ recordActivity();
+}));
 function closeMobileMore(){
  byId('mobile-more-panel').hidden=true;
  byId('mobile-more').setAttribute('aria-expanded','false');
@@ -42,6 +99,7 @@ function closeMobileMore(){
 
 
 function showLogin(){
+ clearIdleTimers();
  rotateRequestScope();
  sessionEpoch++;
  storeLoadedAt=0;
@@ -199,6 +257,9 @@ async function enter(user){
  sessionEpoch++;
  storeLoadedAt=0;
  currentUser=user;
+ clearDeviceLock();
+ lastActivity=Date.now();
+ checkSessionIdle();
  // Clear any residual workspace before showing a new authenticated session.
  // In particular, a preceding account's catalogue must never flash on screen.
  workspace.replaceChildren();
@@ -238,6 +299,7 @@ byId('login-form').addEventListener('submit',handle(async event=>{
  event.preventDefault();
  const submit=event.target.querySelector('button[type=submit]');
  await withBusy(submit,async()=>{
+  await logoutInFlight; // An older logout must not clear the new login cookie.
   const form=new FormData(event.target);
   const result=await request('POST','/api/login',{
    slug:String(form.get('slug')).trim().toLowerCase(),
@@ -303,14 +365,12 @@ document.addEventListener('keydown',event=>{
 window.addEventListener('popstate',()=>{
  if(currentUser)view(viewFromHash(window.location.hash)||'service',{fromHistory:true});
 });
-const logout=handle(async()=>{
- await request('POST','/api/logout',{});
- showLogin();
-});
-byId('logout').addEventListener('click',logout);
-byId('logout-mobile').addEventListener('click',logout);
+byId('logout').addEventListener('click',revokeSharedSession);
+byId('logout-mobile').addEventListener('click',revokeSharedSession);
 window.addEventListener('easywine:unauthorized',showLogin);
 async function boot(){
+ // Offline reloads must not silently reopen a protected shared tablet.
+ if(isDeviceLocked()){showLogin();return;}
  const bootNode=byId('boot');
  if(!bootNode.querySelector('.boot-content')){
   bootNode.replaceChildren(loadingState('Vérification de votre session…'));

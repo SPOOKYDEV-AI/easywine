@@ -59,7 +59,7 @@ test('standalone Node server boots, serves the UI and survives process restart',
  }finally{await stop(first);}
  assert.ok(existsSync(path));
  const data=openDatabase(path);
- assert.equal(data.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,4);
+ assert.equal(data.prepare('SELECT MAX(version) AS v FROM schema_version').get().v,5);
  data.close();
  const second=await boot();
  try{assert.equal((await fetch(url+'/healthz')).status,200);}

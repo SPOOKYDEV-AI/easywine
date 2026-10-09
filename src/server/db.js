@@ -9,7 +9,7 @@ export const encode=x=>JSON.stringify(x);
 export const decode=(x,def=[])=>{try{return x===null?def:JSON.parse(x);}catch{return def;}};
 
 
-export const SCHEMA_VERSION=4;
+export const SCHEMA_VERSION=5;
 function migrate(db){
   const exists=db.prepare("SELECT 1 AS present FROM sqlite_master WHERE type='table' AND name='schema_version'").get();
   if(!exists){
@@ -50,6 +50,14 @@ function migrate(db){
       db.prepare('INSERT INTO schema_version(version) VALUES(?)').run(4);
     });
     version=4;
+  }
+  if(version===4){
+    transaction(db,()=>{
+      db.exec(readFileSync(new URL('./migrations/005-shared-tablets.sql',import.meta.url),'utf8'));
+      db.prepare('DELETE FROM schema_version').run();
+      db.prepare('INSERT INTO schema_version(version) VALUES(?)').run(5);
+    });
+    version=5;
   }
   if(version!==SCHEMA_VERSION){
     throw Error('Unsupported database schema version '+version+
