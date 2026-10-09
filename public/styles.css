@@ -191,6 +191,19 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  .optional-filters summary,.result-card summary{min-height:48px;padding-block:.65rem}
  .choice-button{width:100%;margin-right:0}
 }
+/* Shared command terminals: user-confirmed idle warning, not an invisible
+   background refresh. No opacity animation that can reduce text contrast. */
+.session-idle-warning{position:fixed;z-index:130;top:.65rem;right:.75rem;
+ display:flex;align-items:center;gap:.8rem;max-width:min(540px,calc(100vw - 1.5rem));
+ padding:.75rem .9rem;border:1px solid #d9bda1;border-radius:12px;
+ background:#fff9ec;color:#60412f;box-shadow:0 8px 28px #301a1a28;
+ font-size:.87rem;line-height:1.45;font-weight:650}
+.session-idle-warning[hidden]{display:none}
+.session-idle-warning button{min-height:48px;flex:0 0 auto;background:#fff}
+@media(max-width:680px){
+ .session-idle-warning{left:.5rem;right:.5rem;top:.5rem;max-width:none;
+  flex-wrap:wrap;justify-content:center;text-align:center}
+}
 /* Explicit connectivity state, independent of unreliable navigator.onLine. */
 .network-status{
  position:fixed;top:.65rem;left:50%;transform:translateX(-50%);
