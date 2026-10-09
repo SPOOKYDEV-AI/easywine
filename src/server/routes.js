@@ -1,5 +1,5 @@
 
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {signIn,logout,publicUser,createUser,cookieFor,expiredCookie,passwordRecord,verifyPassword} from './auth.js';
 import {now,transaction,record,encode,wineFrom,dishFrom} from './db.js';
 import {recommend} from '../core/pairing.js';
@@ -356,18 +356,53 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     return {body:{wines,totals,disclaimer:'Propositions calculées côté serveur, non nécessairement vues par le client. Choix enregistrés uniquement après confirmation explicite ; aucune vente POS n’est déduite.'}};
   }
   if(method==='POST'&&path==='/api/recommend'){
-    const p=preferences(body),dish=getDish(db,tenant,p.dishId);
-    if(!dish.active)fail('Ce plat est désactivé.',409);
-    const wines=db.prepare('SELECT * FROM wines WHERE restaurant_id=?').all(tenant).map(wineFrom);
-    const blocked=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?').all(tenant,dish.id).map(r=>r.wine_id);
-    const classic=dish.classicWineId?wines.find(w=>w.id===dish.classicWineId):null;
-    const results=recommend({dish,wines:wines.filter(w=>w.id!==classic?.id),blockedWineIds:blocked,styles:p.styles,color:p.color,
-      minPriceCents:p.minPriceCents,maxPriceCents:p.maxPriceCents,
-      diversifyPrices:p.minPriceCents===null&&p.maxPriceCents===null});
-    const classicInfo=classic?{wine:classic,available:classic.active&&classic.stock>0&&!blocked.includes(classic.id),blocked:blocked.includes(classic.id)}:null;
-    const sessionId=recordSuggestions(db,user,dish,classicInfo,results);
-    return {body:{sessionId,dish,classic:classicInfo,
-      recommendations:results,explanation:'Compatibilité indicative calculée sur les profils renseignés par le restaurant, sans recours au prix comme critère de qualité.'}};
+    const p=preferences(body);
+    const requestKey=body?.requestKey;
+    if(requestKey!==undefined&&
+       (typeof requestKey!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(requestKey)))
+      fail('Clé de recommandation invalide.');
+    const payloadHash=createHash('sha256').update(JSON.stringify({
+      dishId:p.dishId,styles:[...p.styles].sort(),color:p.color,
+      minPriceCents:p.minPriceCents,maxPriceCents:p.maxPriceCents
+    })).digest('hex');
+    // A waiter may not receive a successful HTTP response despite the server
+    // having recorded the proposal. A retry with the SAME key must replay the
+    // original response, not increment statistics or create a new session.
+    // Do this before checking current stock: an already issued proposal must
+    // remain retrievable even after an inventory change (choice rechecks stock).
+    return {body:transaction(db,()=>{
+      if(requestKey){
+        db.prepare('DELETE FROM recommendation_requests WHERE created_at<?')
+          .run(new Date(Date.now()-2*60*60*1000).toISOString());
+        const existing=db.prepare(
+          'SELECT payload_hash,response_json FROM recommendation_requests WHERE restaurant_id=? AND actor_id=? AND request_key=?'
+        ).get(tenant,user.id,requestKey);
+        if(existing){
+          if(existing.payload_hash!==payloadHash)
+            fail('Cette clé a déjà été utilisée avec d’autres critères.',409);
+          return JSON.parse(existing.response_json);
+        }
+      }
+      const dish=getDish(db,tenant,p.dishId);
+      if(!dish.active)fail('Ce plat est désactivé.',409);
+      const wines=db.prepare('SELECT * FROM wines WHERE restaurant_id=?').all(tenant).map(wineFrom);
+      const blocked=db.prepare('SELECT wine_id FROM blocked_pairings WHERE restaurant_id=? AND dish_id=?')
+        .all(tenant,dish.id).map(r=>r.wine_id);
+      const classic=dish.classicWineId?wines.find(w=>w.id===dish.classicWineId):null;
+      const results=recommend({dish,wines:wines.filter(w=>w.id!==classic?.id),blockedWineIds:blocked,
+        styles:p.styles,color:p.color,minPriceCents:p.minPriceCents,maxPriceCents:p.maxPriceCents,
+        diversifyPrices:p.minPriceCents===null&&p.maxPriceCents===null});
+      const classicInfo=classic?{wine:classic,
+        available:classic.active&&classic.stock>0&&!blocked.includes(classic.id),
+        blocked:blocked.includes(classic.id)}:null;
+      const sessionId=recordSuggestions(db,user,dish,classicInfo,results,{insideTransaction:true});
+      const response={sessionId,dish,classic:classicInfo,recommendations:results,
+        explanation:'Compatibilité indicative calculée sur les profils renseignés par le restaurant, sans recours au prix comme critère de qualité.'};
+      if(requestKey)db.prepare(
+        'INSERT INTO recommendation_requests(restaurant_id,actor_id,request_key,payload_hash,response_json,created_at) VALUES(?,?,?,?,?,?)'
+      ).run(tenant,user.id,requestKey,payloadHash,JSON.stringify(response),now());
+      return response;
+    })};
   }
   if(method==='GET'&&path==='/api/audit'){
     assertRole(user,'owner','manager');
