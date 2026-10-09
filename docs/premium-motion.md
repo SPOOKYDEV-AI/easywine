@@ -22,6 +22,16 @@ Luxe = précision, sobriété et réactivité. Pas d'animation qui ajoute artifi
 - `prefers-reduced-motion: reduce` : le verre est statique et rempli (reflets visibles), sans oscillation. Toutes les animations de carte ou toast sont également arrêtées.
 - Une interruption réseau n'affiche jamais une progression inventée. Le message reste contextualisé et propose une issue.
 
+## Navigation fluide — écran immédiatement utile
+
+- Le rendu d'une vue dont le module et les données sont déjà disponibles est **commité directement** sans afficher fugitivement l'écran de chargement.
+- La navigation ne remplace le contenu précédent par le verre de chargement **qu'après 120 ms d'attente effective**. Ce seuil ne ralentit ni les API ni la peinture d'une vue rapide ; il supprime uniquement le clignotement des chargements imperceptibles.
+- Pendant la résolution, le panneau précédent devient `inert` pour empêcher les actions sur des données d'une rubrique non active ; le menu reste navigable, et l'indicateur `aria-busy` reste exact.
+- Les modules sont préparés sur survol souris / focus clavier **uniquement pour les sessions autorisées**. Aucune prélecture de données serveur ni de module d'administration pour un invité.
+- Les clics répétés sur la rubrique déjà chargée n'entraînent plus de reconstruction du DOM ou de requêtes inutiles. Les actualisations après sauvegarde utilisent `force:true` pour ne pas ignorer les vraies mises à jour.
+- Une transition d'entrée de 4 px / environ 200 ms, seulement sur les grands conteneurs, harmonise les changements de vues sans animer les centaines de lignes d'inventaire. `prefers-reduced-motion` désactive ces transitions.
+- À la déconnexion et avant toute nouvelle connexion, l'ancienne interface est réellement vidée du DOM, y compris si une ancienne requête finit tardivement.
+
 ## Retours d'interaction
 
 | Action | Retour en cours | Confirmation vraie | Erreur |
