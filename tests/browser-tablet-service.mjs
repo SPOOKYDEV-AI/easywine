@@ -109,7 +109,8 @@ try{
  await submit.tap();
  await page.locator('.result-card:not(.classic)').waitFor();
  assert.equal(calls,2,'Changing criteria allows a new recommendation immediately');
- assert.equal(await page.getByText('Vos accords').count(),1);
+ assert.equal(await page.locator('.results > div > h2').filter({hasText:'Vos accords'}).count(),1,
+  'There must be exactly one current result panel after a canceled request');
  assert.equal(await page.locator('.results').getAttribute('aria-busy'),'false');
  assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
  await page.locator('#mobile-nav [data-mobile-view=account]').tap();
