@@ -84,9 +84,20 @@ function recordActivity(){
 }
 document.addEventListener('pointerdown',recordActivity,{passive:true});
 document.addEventListener('keydown',recordActivity);
-window.addEventListener('focus',checkSessionIdle);
+// A shared Chrome/Edge profile can have several windows open. Revoking
+// access in one tab must immediately hide another tab's tenant data as well.
+function enforcePrivacyLock(){
+ if(currentUser&&isDeviceLocked()){showLogin();return;}
+ checkSessionIdle();
+}
+window.addEventListener('storage',event=>{
+ if(event.key===DEVICE_LOCK_KEY&&event.newValue==='1'&&currentUser)
+  showLogin(); // Never propagate network requests or stale DOM to this tab.
+});
+window.addEventListener('focus',enforcePrivacyLock);
+window.addEventListener('pageshow',enforcePrivacyLock);
 document.addEventListener('visibilitychange',()=>{
- if(!document.hidden)checkSessionIdle();
+ if(!document.hidden)enforcePrivacyLock();
 });
 byId('session-idle-continue').addEventListener('click',handle(async()=>{
  await request('GET','/api/me'); // Only explicit human confirmation renews server activity.
