@@ -59,7 +59,7 @@ try{
  assert.equal(await page.locator('#boot').isVisible(),true);
  const glass=page.locator('#boot .wine-glass--hero');
  assert.equal(await glass.count(),1);
- for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__edge-glint','wine-glass__fill','wine-glass__swell','wine-glass__bowl-inner','wine-glass__stem','wine-glass__foot','wine-glass__wine-light'])
+ for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__edge-glint','wine-glass__fill','wine-glass__swell','wine-glass__bowl-inner','wine-glass__stem','wine-glass__foot','wine-glass__wine-light','wine-glass__crystal-specular','wine-glass__crystal-facet','wine-glass__rim-inner-light','wine-glass__wine-meniscus-back'])
   assert.equal(await glass.locator('.'+cls).count(),1);
  const dimensions=await glass.evaluate(svg=>({
   viewBox:svg.getAttribute('viewBox'),
