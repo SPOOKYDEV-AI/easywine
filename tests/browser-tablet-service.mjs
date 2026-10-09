@@ -63,7 +63,7 @@ try{
   assert.equal(geometry.logoutVisible,true,'Session exit must remain reachable');
   assert.ok(geometry.dockButtons.every(h=>h>=48),'Dock targets >=48 CSS px');
   assert.ok(geometry.chips.every(h=>h>=48),'Preference chips >=48 CSS px');
-  assert.ok(geometry.selects.every(h=>h>=50),'Selectors >=50 CSS px');
+  assert.ok(geometry.selects.every(h=>h>=50),'Selectors >=50 CSS px: '+JSON.stringify(geometry.selects));
   assert.ok(geometry.overflow<=1,`No horizontal overflow at ${width}`);
   if(landscape)assert.ok(Math.abs(geometry.left.y-geometry.right.y)<3,'Landscape must show both service panels side by side');
   else assert.ok(geometry.right.y>geometry.left.y+50,'Portrait must stack service panels');
