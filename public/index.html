@@ -20,31 +20,55 @@
  <div id="boot" class="boot-screen" role="status" aria-live="polite" aria-label="Chargement d’EasyWine">
   <div class="boot-content">
    <span class="boot-brand"><span class="wine-mark" aria-hidden="true">◈</span> easywine<span class="wordmark-dot">.</span></span>
-   <div class="boot-glass"><svg class="wine-glass wine-glass--hero" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 132" fill="none" aria-hidden="true" focusable="false">
+   <div class="boot-glass"><svg class="wine-glass wine-glass--hero" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" fill="none" aria-hidden="true" focusable="false">
     <defs>
-     <linearGradient id="ew-boot-wine" x1="25" y1="50" x2="69" y2="81" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#a65b6c"/><stop offset=".27" stop-color="#78364a"/><stop offset=".75" stop-color="#582033"/><stop offset="1" stop-color="#431b2a"/>
+     <linearGradient id="ew-boot-crystal" x1="27" y1="75" x2="93" y2="77" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b3a5a0" stop-opacity=".31"/><stop offset=".12" stop-color="#fff" stop-opacity=".27"/><stop offset=".35" stop-color="#fff" stop-opacity=".025"/><stop offset=".67" stop-color="#e5d8d1" stop-opacity=".06"/><stop offset=".91" stop-color="#ac948c" stop-opacity=".16"/><stop offset="1" stop-color="#9f857c" stop-opacity=".32"/>
      </linearGradient>
-     <linearGradient id="ew-boot-glass" x1="23" y1="35" x2="73" y2="66" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#d9c6ba" stop-opacity=".34"/><stop offset=".28" stop-color="#fff" stop-opacity=".02"/><stop offset=".8" stop-color="#a9938e" stop-opacity=".055"/><stop offset="1" stop-color="#bd9e94" stop-opacity=".22"/>
+     <linearGradient id="ew-boot-outline" x1="29" y1="66" x2="93" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a48a82"/><stop offset=".17" stop-color="#d0bcb5"/><stop offset=".45" stop-color="#b39e97"/><stop offset=".72" stop-color="#c5b1a8"/><stop offset="1" stop-color="#8e7772"/>
      </linearGradient>
-     <clipPath id="ew-boot-bowl"><path d="M24.6 18H71.4L68.5 62.5C66.1 85.5 54.6 88.4 48 89.2C41.4 88.4 29.9 85.5 27.5 62.5Z"/></clipPath>
+     <linearGradient id="ew-boot-wine" x1="24" y1="73" x2="102" y2="123" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9e4f66"/><stop offset=".26" stop-color="#80394e"/><stop offset=".54" stop-color="#682c3c"/><stop offset=".82" stop-color="#4a192c"/><stop offset="1" stop-color="#381323"/>
+     </linearGradient>
+     <radialGradient id="ew-boot-wine-glow" cx="0" cy="0" r="1" gradientTransform="translate(42 81) rotate(71) scale(46 28)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e4a1af" stop-opacity=".45"/><stop offset=".4" stop-color="#ba617b" stop-opacity=".14"/><stop offset="1" stop-color="#741d39" stop-opacity="0"/>
+     </radialGradient>
+     <linearGradient id="ew-boot-stem" x1="57" y1="143" x2="63" y2="143" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9b8179"/><stop offset=".28" stop-color="#ebded5"/><stop offset=".56" stop-color="#fff"/><stop offset="1" stop-color="#917870"/>
+     </linearGradient>
+     <radialGradient id="ew-boot-shadow" cx="0" cy="0" r="1" gradientTransform="translate(60 170) scale(34 6)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7c4945" stop-opacity=".12"/><stop offset="1" stop-color="#7c4945" stop-opacity="0"/>
+     </radialGradient>
+     <clipPath id="ew-boot-bowl"><path d="M35.5 31.8C34.3 48.5 31.5 69 34.4 85.9C38.8 110.7 49 123.4 60 123.8C71 123.4 81.2 110.7 85.6 85.9C88.5 69 85.7 48.5 84.5 31.8Z"/></clipPath>
     </defs>
-    <path class="wine-glass__bowl-tint" fill="url(#ew-boot-glass)" d="M23 15H73L69.5 63Q67 88 48 91Q29 88 26.5 63Z"/>
+    <ellipse class="wine-glass__base-shadow" cx="60" cy="170" rx="34" ry="6" fill="url(#ew-boot-shadow)"/>
+    <path class="wine-glass__bowl-tint" d="M33.6 29.6C32.2 46.8 28.9 68.8 32 87.8C36.7 111.8 48.1 126.2 60 126.4C71.9 126.2 83.3 111.8 88 87.8C91.1 68.8 87.8 46.8 86.4 29.6Z" fill="url(#ew-boot-crystal)"/>
+    <path class="wine-glass__bowl-inner" d="M35.4 32.3C34.2 49 32.3 68.8 35.1 85.5C39.7 108.5 49.4 122.3 60 122.5C70.6 122.3 80.3 108.5 84.9 85.5C87.7 68.8 85.8 49 84.6 32.3" stroke="#fff" stroke-opacity=".62" stroke-width=".65"/>
     <g clip-path="url(#ew-boot-bowl)">
      <g class="wine-glass__fill">
       <g class="wine-glass__swell">
-       <path class="wine-glass__liquid" fill="url(#ew-boot-wine)" d="M22 46.5Q48 50.9 74 46.5V102H22Z"/>
-       <path class="wine-glass__liquid-glint" stroke="#e8a9b5" stroke-opacity=".38" stroke-width=".9" stroke-linecap="round" d="M31 58Q32 76 42 82"/>
-       <path class="wine-glass__surface" stroke="#e1a3af" stroke-width="1.25" stroke-linecap="round" d="M22 46.5Q48 50.9 74 46.5"/>
+       <path class="wine-glass__liquid" d="M21 74.3C36 71.2 46 77.9 60 77.9C74 77.9 84 71.2 99 74.3V139H21Z" fill="url(#ew-boot-wine)"/>
+       <path class="wine-glass__wine-light" d="M21 74.3C36 71.2 46 77.9 60 77.9C74 77.9 84 71.2 99 74.3V139H21Z" fill="url(#ew-boot-wine-glow)"/>
+       <path class="wine-glass__wine-edge" d="M24 74.5C38.3 72.3 47.8 77.4 60 77.4C72.2 77.4 81.7 72.3 96 74.5" stroke="#dba1ad" stroke-opacity=".54" stroke-width="1.1" stroke-linecap="round"/>
+       <path class="wine-glass__surface" d="M31.5 73.9C47 75.4 73 75.4 88.5 73.9" stroke="#f0c0c3" stroke-opacity=".5" stroke-width=".7" stroke-linecap="round"/>
+       <path class="wine-glass__liquid-glint" d="M37.5 83.5C38 100 47 114.9 52 117.3" stroke="#f4c6c9" stroke-opacity=".34" stroke-width="1.3" stroke-linecap="round"/>
+       <path class="wine-glass__caustic" d="M46 119.6C56 124 68 121.8 76 115.5" stroke="#efbac2" stroke-opacity=".28" stroke-width="1.2" stroke-linecap="round"/>
       </g>
      </g>
     </g>
-    <path class="wine-glass__outline" stroke="#927871" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M23 15H73L69.5 63Q67 88 48 91Q29 88 26.5 63L23 15ZM48 91V116M34.5 119H61.5"/>
-    <path class="wine-glass__rim" stroke="#c9b5a8" stroke-width=".85" stroke-linecap="round" d="M24.3 17.6Q48 18.1 71.7 17.6"/>
-    <path class="wine-glass__highlight" stroke="#fff" stroke-opacity=".83" stroke-width="1.35" stroke-linecap="round" d="M30.6 28.5L32 44.8M32.4 50.2L33 58"/>
-    <path class="wine-glass__edge-glint" stroke="#e2d2ca" stroke-opacity=".8" stroke-width=".8" stroke-linecap="round" d="M66.7 29L65.6 45M48.9 96V112M39 121H57"/>
-    <path class="wine-glass__caustic" stroke="#fff4ed" stroke-opacity=".5" stroke-width=".85" stroke-linecap="round" d="M35.3 72Q39 80 45.3 82"/>
+    <path class="wine-glass__left-refraction" d="M35 34.1C33.6 59.3 32.9 71.5 35.4 85.6C38.4 103.2 44.9 113.8 49 118.4C41.1 112.9 36.5 101 33.8 87C31.2 68.4 33.3 46.7 35 34.1Z" fill="#fff" fill-opacity=".41"/>
+    <path class="wine-glass__right-refraction" d="M84.7 34.4C87.1 53.4 87.6 74.1 85 88C81.8 107.9 73.1 119.6 66.8 123C77.5 111.8 82.3 97.1 84 85.9C86.8 68.8 85.9 48.2 84.7 34.4Z" fill="#b3948c" fill-opacity=".14"/>
+    <path class="wine-glass__outline" d="M33.6 29.6C32.2 46.8 28.9 68.8 32 87.8C36.7 111.8 48.1 126.2 60 126.4C71.9 126.2 83.3 111.8 88 87.8C91.1 68.8 87.8 46.8 86.4 29.6" stroke="url(#ew-boot-outline)" stroke-width="1.4" stroke-linecap="round"/>
+    <ellipse class="wine-glass__rim" cx="60" cy="29.3" rx="26.6" ry="3.1" stroke="url(#ew-boot-outline)" stroke-width="1.3"/>
+    <path class="wine-glass__rim-shine" d="M34.8 28.7C50.2 26.3 69.8 26.3 85.2 28.7" stroke="#fff9f5" stroke-opacity=".9" stroke-width="1.3" stroke-linecap="round"/>
+    <path class="wine-glass__highlight" d="M36.4 39C35.1 51.5 34.8 60.6 35.4 66.2" stroke="#fff" stroke-opacity=".93" stroke-width="1.35" stroke-linecap="round"/>
+    <path class="wine-glass__edge-glint" d="M83.3 39C85.6 58 85 77.3 82.7 85.3" stroke="#fff7ef" stroke-opacity=".58" stroke-width=".85" stroke-linecap="round"/>
+    <path class="wine-glass__stem" d="M59.25 126.1C59.3 139.6 58.8 151 59 161.9L61.2 161.9C61 151 60.7 139.6 60.75 126.1" fill="url(#ew-boot-stem)" stroke="#b8a29a" stroke-opacity=".65" stroke-width=".42"/>
+    <path class="wine-glass__stem-glint" d="M59.8 132V158.5" stroke="#fff" stroke-opacity=".85" stroke-width=".8" stroke-linecap="round"/>
+    <path class="wine-glass__foot" d="M59.1 160.4C52.9 163.4 38.5 163.2 33.8 165C46.4 169.5 74.3 169.4 86.3 165C81.4 163.1 67.4 163.4 60.9 160.4Z" fill="url(#ew-boot-crystal)" stroke="url(#ew-boot-outline)" stroke-width=".85"/>
+    <ellipse class="wine-glass__foot-rim" cx="60" cy="165" rx="26.4" ry="2.3" stroke="#bca59b" stroke-opacity=".72" stroke-width=".7"/>
+    <path class="wine-glass__foot-glint" d="M37.3 165.2C49 162.4 70 162.4 82.7 165.2" stroke="#fff" stroke-opacity=".77" stroke-width=".86" stroke-linecap="round"/>
    </svg></div>
    <p id="boot-message">Préparation de votre espace…</p>
    <p class="loading-detail" hidden>Le serveur met plus de temps que prévu à répondre.</p>
@@ -52,31 +76,55 @@
   </div>
  </div>
  <noscript><p class="noscript-note">EasyWine nécessite JavaScript. Activez-le pour accéder à votre établissement.</p></noscript>
- <template id="wine-glass-template"><svg class="wine-glass wine-glass--inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 132" fill="none" aria-hidden="true" focusable="false">
+ <template id="wine-glass-template"><svg class="wine-glass wine-glass--inline" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 180" fill="none" aria-hidden="true" focusable="false">
     <defs>
-     <linearGradient id="ew-template-wine" x1="25" y1="50" x2="69" y2="81" gradientUnits="userSpaceOnUse">
-      <stop offset="0" stop-color="#a65b6c"/><stop offset=".27" stop-color="#78364a"/><stop offset=".75" stop-color="#582033"/><stop offset="1" stop-color="#431b2a"/>
+     <linearGradient id="ew-template-crystal" x1="27" y1="75" x2="93" y2="77" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#b3a5a0" stop-opacity=".31"/><stop offset=".12" stop-color="#fff" stop-opacity=".27"/><stop offset=".35" stop-color="#fff" stop-opacity=".025"/><stop offset=".67" stop-color="#e5d8d1" stop-opacity=".06"/><stop offset=".91" stop-color="#ac948c" stop-opacity=".16"/><stop offset="1" stop-color="#9f857c" stop-opacity=".32"/>
      </linearGradient>
-     <linearGradient id="ew-template-glass" x1="23" y1="35" x2="73" y2="66" gradientUnits="userSpaceOnUse">
-      <stop stop-color="#d9c6ba" stop-opacity=".34"/><stop offset=".28" stop-color="#fff" stop-opacity=".02"/><stop offset=".8" stop-color="#a9938e" stop-opacity=".055"/><stop offset="1" stop-color="#bd9e94" stop-opacity=".22"/>
+     <linearGradient id="ew-template-outline" x1="29" y1="66" x2="93" y2="80" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#a48a82"/><stop offset=".17" stop-color="#d0bcb5"/><stop offset=".45" stop-color="#b39e97"/><stop offset=".72" stop-color="#c5b1a8"/><stop offset="1" stop-color="#8e7772"/>
      </linearGradient>
-     <clipPath id="ew-template-bowl"><path d="M24.6 18H71.4L68.5 62.5C66.1 85.5 54.6 88.4 48 89.2C41.4 88.4 29.9 85.5 27.5 62.5Z"/></clipPath>
+     <linearGradient id="ew-template-wine" x1="24" y1="73" x2="102" y2="123" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9e4f66"/><stop offset=".26" stop-color="#80394e"/><stop offset=".54" stop-color="#682c3c"/><stop offset=".82" stop-color="#4a192c"/><stop offset="1" stop-color="#381323"/>
+     </linearGradient>
+     <radialGradient id="ew-template-wine-glow" cx="0" cy="0" r="1" gradientTransform="translate(42 81) rotate(71) scale(46 28)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e4a1af" stop-opacity=".45"/><stop offset=".4" stop-color="#ba617b" stop-opacity=".14"/><stop offset="1" stop-color="#741d39" stop-opacity="0"/>
+     </radialGradient>
+     <linearGradient id="ew-template-stem" x1="57" y1="143" x2="63" y2="143" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#9b8179"/><stop offset=".28" stop-color="#ebded5"/><stop offset=".56" stop-color="#fff"/><stop offset="1" stop-color="#917870"/>
+     </linearGradient>
+     <radialGradient id="ew-template-shadow" cx="0" cy="0" r="1" gradientTransform="translate(60 170) scale(34 6)" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#7c4945" stop-opacity=".12"/><stop offset="1" stop-color="#7c4945" stop-opacity="0"/>
+     </radialGradient>
+     <clipPath id="ew-template-bowl"><path d="M35.5 31.8C34.3 48.5 31.5 69 34.4 85.9C38.8 110.7 49 123.4 60 123.8C71 123.4 81.2 110.7 85.6 85.9C88.5 69 85.7 48.5 84.5 31.8Z"/></clipPath>
     </defs>
-    <path class="wine-glass__bowl-tint" fill="url(#ew-template-glass)" d="M23 15H73L69.5 63Q67 88 48 91Q29 88 26.5 63Z"/>
+    <ellipse class="wine-glass__base-shadow" cx="60" cy="170" rx="34" ry="6" fill="url(#ew-template-shadow)"/>
+    <path class="wine-glass__bowl-tint" d="M33.6 29.6C32.2 46.8 28.9 68.8 32 87.8C36.7 111.8 48.1 126.2 60 126.4C71.9 126.2 83.3 111.8 88 87.8C91.1 68.8 87.8 46.8 86.4 29.6Z" fill="url(#ew-template-crystal)"/>
+    <path class="wine-glass__bowl-inner" d="M35.4 32.3C34.2 49 32.3 68.8 35.1 85.5C39.7 108.5 49.4 122.3 60 122.5C70.6 122.3 80.3 108.5 84.9 85.5C87.7 68.8 85.8 49 84.6 32.3" stroke="#fff" stroke-opacity=".62" stroke-width=".65"/>
     <g clip-path="url(#ew-template-bowl)">
      <g class="wine-glass__fill">
       <g class="wine-glass__swell">
-       <path class="wine-glass__liquid" fill="url(#ew-template-wine)" d="M22 46.5Q48 50.9 74 46.5V102H22Z"/>
-       <path class="wine-glass__liquid-glint" stroke="#e8a9b5" stroke-opacity=".38" stroke-width=".9" stroke-linecap="round" d="M31 58Q32 76 42 82"/>
-       <path class="wine-glass__surface" stroke="#e1a3af" stroke-width="1.25" stroke-linecap="round" d="M22 46.5Q48 50.9 74 46.5"/>
+       <path class="wine-glass__liquid" d="M21 74.3C36 71.2 46 77.9 60 77.9C74 77.9 84 71.2 99 74.3V139H21Z" fill="url(#ew-template-wine)"/>
+       <path class="wine-glass__wine-light" d="M21 74.3C36 71.2 46 77.9 60 77.9C74 77.9 84 71.2 99 74.3V139H21Z" fill="url(#ew-template-wine-glow)"/>
+       <path class="wine-glass__wine-edge" d="M24 74.5C38.3 72.3 47.8 77.4 60 77.4C72.2 77.4 81.7 72.3 96 74.5" stroke="#dba1ad" stroke-opacity=".54" stroke-width="1.1" stroke-linecap="round"/>
+       <path class="wine-glass__surface" d="M31.5 73.9C47 75.4 73 75.4 88.5 73.9" stroke="#f0c0c3" stroke-opacity=".5" stroke-width=".7" stroke-linecap="round"/>
+       <path class="wine-glass__liquid-glint" d="M37.5 83.5C38 100 47 114.9 52 117.3" stroke="#f4c6c9" stroke-opacity=".34" stroke-width="1.3" stroke-linecap="round"/>
+       <path class="wine-glass__caustic" d="M46 119.6C56 124 68 121.8 76 115.5" stroke="#efbac2" stroke-opacity=".28" stroke-width="1.2" stroke-linecap="round"/>
       </g>
      </g>
     </g>
-    <path class="wine-glass__outline" stroke="#927871" stroke-width="1.85" stroke-linecap="round" stroke-linejoin="round" d="M23 15H73L69.5 63Q67 88 48 91Q29 88 26.5 63L23 15ZM48 91V116M34.5 119H61.5"/>
-    <path class="wine-glass__rim" stroke="#c9b5a8" stroke-width=".85" stroke-linecap="round" d="M24.3 17.6Q48 18.1 71.7 17.6"/>
-    <path class="wine-glass__highlight" stroke="#fff" stroke-opacity=".83" stroke-width="1.35" stroke-linecap="round" d="M30.6 28.5L32 44.8M32.4 50.2L33 58"/>
-    <path class="wine-glass__edge-glint" stroke="#e2d2ca" stroke-opacity=".8" stroke-width=".8" stroke-linecap="round" d="M66.7 29L65.6 45M48.9 96V112M39 121H57"/>
-    <path class="wine-glass__caustic" stroke="#fff4ed" stroke-opacity=".5" stroke-width=".85" stroke-linecap="round" d="M35.3 72Q39 80 45.3 82"/>
+    <path class="wine-glass__left-refraction" d="M35 34.1C33.6 59.3 32.9 71.5 35.4 85.6C38.4 103.2 44.9 113.8 49 118.4C41.1 112.9 36.5 101 33.8 87C31.2 68.4 33.3 46.7 35 34.1Z" fill="#fff" fill-opacity=".41"/>
+    <path class="wine-glass__right-refraction" d="M84.7 34.4C87.1 53.4 87.6 74.1 85 88C81.8 107.9 73.1 119.6 66.8 123C77.5 111.8 82.3 97.1 84 85.9C86.8 68.8 85.9 48.2 84.7 34.4Z" fill="#b3948c" fill-opacity=".14"/>
+    <path class="wine-glass__outline" d="M33.6 29.6C32.2 46.8 28.9 68.8 32 87.8C36.7 111.8 48.1 126.2 60 126.4C71.9 126.2 83.3 111.8 88 87.8C91.1 68.8 87.8 46.8 86.4 29.6" stroke="url(#ew-template-outline)" stroke-width="1.4" stroke-linecap="round"/>
+    <ellipse class="wine-glass__rim" cx="60" cy="29.3" rx="26.6" ry="3.1" stroke="url(#ew-template-outline)" stroke-width="1.3"/>
+    <path class="wine-glass__rim-shine" d="M34.8 28.7C50.2 26.3 69.8 26.3 85.2 28.7" stroke="#fff9f5" stroke-opacity=".9" stroke-width="1.3" stroke-linecap="round"/>
+    <path class="wine-glass__highlight" d="M36.4 39C35.1 51.5 34.8 60.6 35.4 66.2" stroke="#fff" stroke-opacity=".93" stroke-width="1.35" stroke-linecap="round"/>
+    <path class="wine-glass__edge-glint" d="M83.3 39C85.6 58 85 77.3 82.7 85.3" stroke="#fff7ef" stroke-opacity=".58" stroke-width=".85" stroke-linecap="round"/>
+    <path class="wine-glass__stem" d="M59.25 126.1C59.3 139.6 58.8 151 59 161.9L61.2 161.9C61 151 60.7 139.6 60.75 126.1" fill="url(#ew-template-stem)" stroke="#b8a29a" stroke-opacity=".65" stroke-width=".42"/>
+    <path class="wine-glass__stem-glint" d="M59.8 132V158.5" stroke="#fff" stroke-opacity=".85" stroke-width=".8" stroke-linecap="round"/>
+    <path class="wine-glass__foot" d="M59.1 160.4C52.9 163.4 38.5 163.2 33.8 165C46.4 169.5 74.3 169.4 86.3 165C81.4 163.1 67.4 163.4 60.9 160.4Z" fill="url(#ew-template-crystal)" stroke="url(#ew-template-outline)" stroke-width=".85"/>
+    <ellipse class="wine-glass__foot-rim" cx="60" cy="165" rx="26.4" ry="2.3" stroke="#bca59b" stroke-opacity=".72" stroke-width=".7"/>
+    <path class="wine-glass__foot-glint" d="M37.3 165.2C49 162.4 70 162.4 82.7 165.2" stroke="#fff" stroke-opacity=".77" stroke-width=".86" stroke-linecap="round"/>
    </svg></template>
  <div id="login" class="login-layout" hidden>
   <div class="login-intro">
