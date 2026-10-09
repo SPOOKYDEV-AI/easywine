@@ -359,7 +359,7 @@ export async function route({db,method,path,body,user,cookie,ip,secure=false}){
     const p=preferences(body);
     const requestKey=body?.requestKey;
     if(requestKey!==undefined&&
-       (typeof requestKey!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(requestKey)))
+       (typeof requestKey!=='string'||!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/.test(requestKey)))
       fail('Clé de recommandation invalide.');
     const payloadHash=createHash('sha256').update(JSON.stringify({
       dishId:p.dishId,styles:[...p.styles].sort(),color:p.color,
