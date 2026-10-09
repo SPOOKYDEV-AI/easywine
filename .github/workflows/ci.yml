@@ -61,6 +61,8 @@ jobs:
         run: node tests/browser-tablet-service.mjs
       - name: Verify shared-tablet privacy warning, idle lock and reauthentication
         run: node tests/browser-tablet-security.mjs
+      - name: Verify tablet installation manifest and real raster icons
+        run: node tests/browser-tablet-install.mjs
       - name: Verify network resilience and browser history
         run: node tests/browser-network-history.mjs
       - name: Audit WCAG 2.2 A/AA across real workflows
