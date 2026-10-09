@@ -37,8 +37,8 @@ try{
  await page.goto(origin,{waitUntil:'domcontentloaded'});
  await page.locator('#boot:not([hidden]) .wine-glass--hero').waitFor();
  await page.screenshot({path:'test-artifacts/premium-boot.png'});
- const liquid=page.locator('#boot .wine-glass__liquid');
- assert.match(await liquid.evaluate(el=>getComputedStyle(el).animationName),/wine-pour/);
+ const fill=page.locator('#boot .wine-glass__fill');
+ assert.match(await fill.evaluate(el=>getComputedStyle(el).animationName),/wine-pour/);
  await page.locator('#login:not([hidden])').waitFor();
  await page.locator('#login-form input[name=slug]').fill('premium-house');
  await page.locator('#login-form input[name=email]').fill('owner@example.fr');
@@ -139,12 +139,12 @@ try{
  await page.locator('#menu [data-view=service]').click();
  await page.route('**/api/recommend',async route=>{await sleep(300);await route.continue();});
  await page.getByRole('button',{name:/Trouver les meilleurs accords/}).click();
- await page.locator('.view-loading .wine-glass__liquid').waitFor();
- const reduced=await page.locator('.view-loading .wine-glass__liquid').evaluate(el=>({
-  animation:getComputedStyle(el).animationName,clip:getComputedStyle(el).clipPath
+ await page.locator('.view-loading .wine-glass__fill').waitFor();
+ const reduced=await page.locator('.view-loading .wine-glass__fill').evaluate(el=>({
+  animation:getComputedStyle(el).animationName,transform:getComputedStyle(el).transform
  }));
  assert.equal(reduced.animation,'none');
- assert.equal(reduced.clip,'none');
+ assert.equal(reduced.transform,'none');
  await page.locator('.result-card:not(.classic)').waitFor();
  await page.setViewportSize({width:390,height:844});
  assert.equal(await page.evaluate(()=>Math.max(0,document.documentElement.scrollWidth-innerWidth)),0);
