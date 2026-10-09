@@ -58,13 +58,13 @@ try{
  assert.equal(await page.locator('#boot').isVisible(),true);
  const glass=page.locator('#boot .wine-glass--hero');
  assert.equal(await glass.count(),1);
- for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__stem-glint'])
+ for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__edge-glint','wine-glass__fill','wine-glass__swell'])
   assert.equal(await glass.locator('.'+cls).count(),1);
 
  // The pour finishes, but restrained surface movement persists until HTTP
  // completion. A genuine slow response changes text, not a fake percentage.
  await page.locator('#boot .loading-detail:not([hidden])').waitFor({timeout:7000});
- assert.equal(await page.locator('#boot .wine-glass__surface').evaluate(el=>
+ assert.equal(await page.locator('#boot .wine-glass__swell').evaluate(el=>
   el.getAnimations().some(a=>a.animationName==='wine-tide'&&a.playState==='running')),true);
  assert.equal(await page.locator('#boot').innerText().then(s=>s.includes('%')),false);
  releaseDish();
@@ -134,7 +134,7 @@ try{
  await page.locator('#notification[data-type=success]').waitFor();
 
  await page.emulateMedia({reducedMotion:'reduce'});
- assert.equal(await page.locator('#boot .wine-glass__surface').evaluate(el=>
+ assert.equal(await page.locator('#boot .wine-glass__fill').evaluate(el=>
   getComputedStyle(el).animationName),'none');
  assert.deepEqual(errors,[]);
  console.log('BROWSER_REAL_LOADING_OK: genuine catalogue phases, persistent motion, slow route, busy contrast, reduced motion');

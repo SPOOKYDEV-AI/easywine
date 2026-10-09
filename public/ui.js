@@ -38,12 +38,32 @@ export function select(name,options,selected){
  return s;
 }
 let noticeTimer;
+let wineGlassSerial=0;
 export function wineGlass(size='inline'){
  const source=byId('wine-glass-template')?.content.firstElementChild;
  if(!source)return element('span',{class:'loading-spinner','aria-hidden':'true'});
  const glass=source.cloneNode(true);
  glass.classList.remove('wine-glass--inline');
  glass.classList.add('wine-glass--'+size);
+ // SVG fragments in <template> would otherwise duplicate gradient/clip IDs.
+ // Scope each instance so parallel busy buttons never reference another glass.
+ const prefix='ew-glass-'+(++wineGlassSerial);
+ const names=new Map();
+ for(const node of glass.querySelectorAll('[id]')){
+  const previous=node.id;
+  const unique=prefix+'-'+previous;
+  node.id=unique;
+  names.set(previous,unique);
+ }
+ for(const node of glass.querySelectorAll('[fill],[stroke],[clip-path]')){
+  for(const attr of ['fill','stroke','clip-path']){
+   const value=node.getAttribute(attr);
+   if(value?.startsWith('url(#')){
+    const mapped=names.get(value.slice(5,-1));
+    if(mapped)node.setAttribute(attr,'url(#'+mapped+')');
+   }
+  }
+ }
  return glass;
 }
 export function dismissNotice(){
