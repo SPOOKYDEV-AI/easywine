@@ -184,7 +184,7 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
 @media (any-pointer:coarse){
  .chip,.button,.choice-button,.subtle-button,.icon-button,.mobile-logout,
  .logout-button,.nav-link,.feedback-dismiss{min-height:48px}
- .chip{padding:.75rem 1.05rem}
+ .chip{min-height:49px;padding:.75rem 1.05rem}
  .chip,button,select,summary{touch-action:manipulation}
  select,input,textarea{min-height:50px;font-size:16px}
  .service-grid select{height:54px;min-height:54px}
