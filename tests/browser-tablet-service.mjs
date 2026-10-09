@@ -108,6 +108,26 @@ try{
  await page.locator('.account-grid').waitFor();
  await page.locator('#mobile-nav [data-mobile-view=service]').tap();
  await page.locator('.service-grid').waitFor();
+ // A slow tab response cannot resurrect a previous session after sign-out.
+ let statSeen,releaseStat;
+ const statHit=new Promise(resolve=>statSeen=resolve);
+ const statGate=new Promise(resolve=>releaseStat=resolve);
+ await page.route('**/api/stats',async route=>{
+  statSeen();
+  await statGate;
+  await route.continue();
+ });
+ await page.locator('#mobile-more').tap();
+ await page.locator('#mobile-more-panel [data-mobile-view=stats]').tap();
+ await statHit;
+ await page.locator('#logout-mobile').tap();
+ await page.locator('#login:not([hidden])').waitFor();
+ assert.equal(await page.locator('#workspace').innerText(),'');
+ releaseStat();
+ await page.waitForTimeout(200);
+ assert.equal(await page.locator('#shell').isVisible(),false);
+ assert.equal(await page.locator('#notification').isVisible(),false);
+ await page.unroute('**/api/stats');
  assert.deepEqual(errors,[]);
  console.log('BROWSER_TABLET_SERVICE_OK: 600/800/1024px, thumb dock, targets, portrait/landscape, interrupted request, recovered advice');
 }finally{
