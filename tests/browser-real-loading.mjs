@@ -59,24 +59,29 @@ try{
  assert.equal(await page.locator('#boot').isVisible(),true);
  const glass=page.locator('#boot .wine-glass--hero');
  assert.equal(await glass.count(),1);
- for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__edge-glint','wine-glass__fill','wine-glass__swell','wine-glass__bowl-inner','wine-glass__stem','wine-glass__foot','wine-glass__wine-light','wine-glass__crystal-specular','wine-glass__crystal-facet','wine-glass__rim-inner-light','wine-glass__wine-meniscus-back'])
+ for(const cls of ['wine-glass__rim','wine-glass__liquid-glint','wine-glass__edge-glint','wine-glass__fill','wine-glass__swell','wine-glass__bowl-inner','wine-glass__stem','wine-glass__foot','wine-glass__wine-light','wine-glass__crystal-specular','wine-glass__crystal-facet','wine-glass__rim-inner-light','wine-glass__wine-meniscus-back','wine-glass__wine-inner-glint'])
   assert.equal(await glass.locator('.'+cls).count(),1);
  const dimensions=await glass.evaluate(svg=>({
   viewBox:svg.getAttribute('viewBox'),
   wineStops:svg.querySelectorAll('[id$="-wine"] stop').length,
   stemStops:svg.querySelectorAll('[id$="-stem"] stop').length,
-  radialGlows:svg.querySelectorAll('radialGradient').length
+  radialGlows:svg.querySelectorAll('radialGradient').length,
+  meniscusStops:svg.querySelector('[id$="-meniscus-light"]')?.querySelectorAll('stop').length,
+  edgeFill:svg.querySelector('.wine-glass__wine-edge')?.getAttribute('stroke')
  }));
- assert.deepEqual(dimensions,{viewBox:'0 0 120 180',wineStops:5,stemStops:4,radialGlows:2});
+ assert.deepEqual(dimensions,{viewBox:'0 0 120 180',wineStops:5,stemStops:4,radialGlows:2,
+  meniscusStops:5,edgeFill:'url(#ew-boot-meniscus-light)'});
 
  // The pour finishes, but restrained surface movement persists until HTTP
  // completion. A genuine slow response changes text, not a fake percentage.
  await page.locator('#boot .loading-detail:not([hidden])').waitFor({timeout:7000});
  assert.equal(await page.locator('#boot .wine-glass__swell').evaluate(el=>
   el.getAnimations().some(a=>a.animationName==='wine-tide'&&a.playState==='running')),true);
+ assert.equal(await page.locator('#boot .wine-glass__wine-light').evaluate(el=>
+  el.getAnimations().some(a=>a.animationName==='wine-ambient-light'&&a.playState==='running')),true);
  assert.equal(await page.locator('#boot').innerText().then(s=>s.includes('%')),false);
  mkdirSync('test-artifacts',{recursive:true});
- await page.locator('#boot').screenshot({path:'test-artifacts/crystal-glass-v4.png'});
+ await page.locator('#boot').screenshot({path:'test-artifacts/crystal-glass-v6.png'});
  releaseDish();
  await page.locator('#shell:not([hidden])').waitFor();
  await page.unroute('**/api/dishes');
@@ -93,16 +98,19 @@ try{
   const ids=glasses.flatMap(svg=>[...svg.querySelectorAll('[id]')].map(el=>el.id));
   const referenceProblems=[];
   for(const svg of glasses){
-   for(const el of svg.querySelectorAll('[clip-path],[fill]')){
-    const attr=el.getAttribute('clip-path')||el.getAttribute('fill');
-    const match=/^url\(#([^)]+)\)$/.exec(attr||'');
-    if(match&&!svg.querySelector('[id="'+match[1]+'"]'))
-     referenceProblems.push(match[1]);
+   for(const el of svg.querySelectorAll('[clip-path],[fill],[stroke]')){
+    for(const name of ['clip-path','fill','stroke']){
+     const attr=el.getAttribute(name);
+     const match=/^url\(#([^)]+)\)$/.exec(attr||'');
+     if(match&&!svg.querySelector('[id="'+match[1]+'"]'))
+      referenceProblems.push(match[1]);
+    }
    }
   }
   const details=glasses.map(svg=>({
    clip:svg.querySelector('.wine-glass__fill').parentElement.getAttribute('clip-path'),
-   gradient:svg.querySelector('.wine-glass__liquid').getAttribute('fill')
+   gradient:svg.querySelector('.wine-glass__liquid').getAttribute('fill'),
+   meniscus:svg.querySelector('.wine-glass__wine-edge').getAttribute('stroke')
   }));
   host.remove();
   return {count:glasses.length,ids,referenceProblems,details};
@@ -113,6 +121,7 @@ try{
  for(const detail of isolation.details){
   assert.match(detail.clip,/^url\(#ew-glass-/);
   assert.match(detail.gradient,/^url\(#ew-glass-/);
+  assert.match(detail.meniscus,/^url\(#ew-glass-/);
  }
  await page.getByRole('button',{name:/Trouver les meilleurs accords/}).waitFor();
  assert.equal(await page.locator('#boot').isVisible(),false);
@@ -179,6 +188,8 @@ try{
 
  await page.emulateMedia({reducedMotion:'reduce'});
  assert.equal(await page.locator('#boot .wine-glass__fill').evaluate(el=>
+  getComputedStyle(el).animationName),'none');
+ assert.equal(await page.locator('#boot .wine-glass__wine-light').evaluate(el=>
   getComputedStyle(el).animationName),'none');
  assert.deepEqual(errors,[]);
  console.log('BROWSER_REAL_LOADING_OK: genuine catalogue phases, persistent motion, slow route, busy contrast, reduced motion');
