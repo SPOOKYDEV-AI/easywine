@@ -30,6 +30,7 @@ let pendingMfaChallenge=null;
 let currentView='service';
 let store={wines:[],dishes:[]};
 let viewEpoch=0;
+let hasCommittedView=false;
 let sessionEpoch=0;
 let storeLoadedAt=0;
 const STALE_CATALOG_MS=30_000;
@@ -48,7 +49,10 @@ function showLogin(){
  if(serviceModule)serviceModule.resetServicePreferences();
  viewEpoch++;
  byId('boot').hidden=true;
- byId('workspace').setAttribute('aria-busy','false');
+ workspace.setAttribute('aria-busy','false');
+ workspace.inert=false;
+ workspace.replaceChildren(); // Never preserve a previous tenant's DOM behind the login screen.
+ hasCommittedView=false;
  pendingMfaChallenge=null;
  byId('login-form').hidden=false;
  byId('mfa-form').hidden=true;
@@ -103,18 +107,22 @@ async function load(onProgress){
 async function refresh(){
  const generation=sessionEpoch;
  const loaded=await load();
- if(loaded&&generation===sessionEpoch)await view(currentView);
+ if(loaded&&generation===sessionEpoch)await view(currentView,{force:true});
 }
-async function view(name,{fromHistory=false,replaceHistory=false}={}){
+async function view(name,{fromHistory=false,replaceHistory=false,force=false}={}){
  if(!currentUser)return;
  const forbidden=currentUser.role==='staff'&&!['service','account'].includes(name);
  if(forbidden)name='service';
+ // Repeated taps on the active tab should not erase its content or repeat GETs.
+ // Explicit refreshes after mutations must use force=true.
+ if(!force&&name===currentView&&(hasCommittedView||workspace.getAttribute('aria-busy')==='true'))return;
  if(forbidden)writeViewLocation(name,{replace:true});
  else if(!fromHistory)writeViewLocation(name,{replace:replaceHistory});
  const epoch=++viewEpoch;
  const generation=sessionEpoch;
  const previousView=currentView;
  currentView=name;
+ hasCommittedView=false;
  for(const button of document.querySelectorAll('#menu [data-view]')){
   const active=button.dataset.view===name;
   button.classList.toggle('active',active);
@@ -136,8 +144,18 @@ async function view(name,{fromHistory=false,replaceHistory=false}={}){
  const staging=document.createElement('div');
  const target=workspace;
  target.setAttribute('aria-busy','true');
- target.replaceChildren(loadingState(messages[name]||'Chargement…'));
- const stopLongLoading=watchLongLoading(target);
+ // Keep the old screen inert while the next view resolves. A fast cached view
+ // will paint directly, rather than flashing a full glass loader for one frame.
+ target.inert=true;
+ let stopLongLoading=()=>{};
+ let loaderTimer;
+ const showLoader=()=>{
+  if(epoch!==viewEpoch||generation!==sessionEpoch)return;
+  target.replaceChildren(loadingState(messages[name]||'Chargement…'));
+  stopLongLoading=watchLongLoading(target);
+ };
+ if(target.firstElementChild)loaderTimer=setTimeout(showLoader,120);
+ else showLoader(); // First route has no previous content to preserve.
  try{
   // A staff member's menu and an owner's inventory must not rely forever on
   // an old in-memory snapshot. Avoid hidden/background polling or write retries.
@@ -158,15 +176,22 @@ async function view(name,{fromHistory=false,replaceHistory=false}={}){
   }else if(name==='account')await mod.renderAccount(staging,currentUser,showLogin);
   if(epoch!==viewEpoch||generation!==sessionEpoch)return;
   target.replaceChildren(...staging.childNodes);
+  hasCommittedView=true;
+  target.inert=false;
   if(previousView!==name)window.scrollTo(0,0);
   target.focus({preventScroll:true});
   performance.mark('easywine:view:'+name+':ready');
  }catch(error){
   if(epoch!==viewEpoch||generation!==sessionEpoch)return;
+  hasCommittedView=false;
   target.replaceChildren(errorState(error?.message||'Une erreur est survenue.',()=>view(name)));
  }finally{
+  clearTimeout(loaderTimer);
   stopLongLoading();
-  if(epoch===viewEpoch&&generation===sessionEpoch)target.setAttribute('aria-busy','false');
+  if(epoch===viewEpoch&&generation===sessionEpoch){
+   target.inert=false;
+   target.setAttribute('aria-busy','false');
+  }
  }
 }
 async function enter(user){
@@ -174,6 +199,11 @@ async function enter(user){
  sessionEpoch++;
  storeLoadedAt=0;
  currentUser=user;
+ // Clear any residual workspace before showing a new authenticated session.
+ // In particular, a preceding account's catalogue must never flash on screen.
+ workspace.replaceChildren();
+ workspace.inert=false;
+ hasCommittedView=false;
  const stamp=++viewEpoch;
  const generation=sessionEpoch;
  const bootNode=byId('boot');
@@ -237,11 +267,22 @@ byId('mfa-form').addEventListener('submit',handle(async event=>{
  },'Vérification du code…');
 }));
 byId('mfa-cancel').addEventListener('click',showLogin);
+// Intent-based preloading: hover or keyboard focus starts only the necessary
+// route module. Never preload anonymous or role-restricted administration code.
+function prepareRoute(name){
+ if(!currentUser||(currentUser.role==='staff'&&!['service','account'].includes(name)))return;
+ void moduleFor(name).catch(()=>{}); // A later real navigation can retry.
+}
 for(const button of document.querySelectorAll('#menu [data-view]')){
  button.addEventListener('click',handle(()=>view(button.dataset.view)));
+ button.addEventListener('pointerenter',event=>{
+  if(event.pointerType==='mouse'||event.pointerType==='pen')prepareRoute(button.dataset.view);
+ });
+ button.addEventListener('focus',()=>prepareRoute(button.dataset.view));
 }
 for(const button of document.querySelectorAll('[data-mobile-view]')){
  button.addEventListener('click',handle(()=>view(button.dataset.mobileView)));
+ button.addEventListener('focus',()=>prepareRoute(button.dataset.mobileView));
 }
 byId('mobile-more').addEventListener('click',()=>{
  const panel=byId('mobile-more-panel'),next=!panel.hidden;

@@ -97,6 +97,8 @@ try{
  await page.getByText('Ouverture de la cave…').waitFor();
  await page.locator('#logout').click();
  await page.locator('#login:not([hidden])').waitFor();
+ assert.equal(await page.locator('#workspace').innerText(),'','Logout must scrub the old tenant DOM');
+ assert.equal(await page.locator('#workspace').getAttribute('inert'),null);
  await login('tenant-b','b@example.fr');
  await page.locator('#menu [data-view=wines]').click();
  await page.getByText('Domaine B visible').waitFor();

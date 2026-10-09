@@ -49,6 +49,8 @@ jobs:
         run: node tests/browser-mfa.mjs
       - name: Verify loading, navigation, retry, reduced motion and lab metrics
         run: node tests/browser-ux.mjs
+      - name: Verify instant navigation, slow-route loader and safe session switch
+        run: node tests/browser-nav-fluid.mjs
       - name: Stress-test inventory list and responsive search
         run: node tests/browser-scale.mjs
       - name: Walk through first restaurant setup and recommendation
