@@ -105,9 +105,13 @@ try{
  await page.unroute('**/api/audit');
 
  // Scope the entrance animation to broad containers, and respect reduced motion.
- const initialMotion=await page.locator('#workspace > .page-header').evaluate(el=>
-  getComputedStyle(el).animationName);
- assert.match(initialMotion,/ew-route-arrive/);
+ const initialMotion=await page.locator('#workspace > .page-header').evaluate(el=>({
+  name:getComputedStyle(el).animationName,
+  frames:el.getAnimations().flatMap(a=>a.effect?.getKeyframes()||[])
+ }));
+ assert.match(initialMotion.name,/ew-route-arrive/);
+ assert.equal(initialMotion.frames.some(frame=>Object.hasOwn(frame,'opacity')),false,
+  'Route motion must not reduce effective text contrast while animating');
  await page.emulateMedia({reducedMotion:'reduce'});
  assert.equal(await page.locator('#workspace > .page-header').evaluate(el=>
   getComputedStyle(el).animationName),'none');

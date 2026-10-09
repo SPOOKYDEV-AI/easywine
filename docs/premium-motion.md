@@ -29,7 +29,7 @@ Luxe = précision, sobriété et réactivité. Pas d'animation qui ajoute artifi
 - Pendant la résolution, le panneau précédent devient `inert` pour empêcher les actions sur des données d'une rubrique non active ; le menu reste navigable, et l'indicateur `aria-busy` reste exact.
 - Les modules sont préparés sur survol souris / focus clavier **uniquement pour les sessions autorisées**. Aucune prélecture de données serveur ni de module d'administration pour un invité.
 - Les clics répétés sur la rubrique déjà chargée n'entraînent plus de reconstruction du DOM ou de requêtes inutiles. Les actualisations après sauvegarde utilisent `force:true` pour ne pas ignorer les vraies mises à jour.
-- Une transition d'entrée de 4 px / environ 200 ms, seulement sur les grands conteneurs, harmonise les changements de vues sans animer les centaines de lignes d'inventaire. `prefers-reduced-motion` désactive ces transitions.
+- Une transition d'entrée de 4 px / environ 200 ms, seulement sur les grands conteneurs et **sans baisse d'opacité du texte** (contraste WCAG conservé pendant le mouvement), harmonise les changements de vues sans animer les centaines de lignes d'inventaire. `prefers-reduced-motion` désactive ces transitions.
 - À la déconnexion et avant toute nouvelle connexion, l'ancienne interface est réellement vidée du DOM, y compris si une ancienne requête finit tardivement.
 
 ## Retours d'interaction

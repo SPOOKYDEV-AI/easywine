@@ -247,9 +247,11 @@ dialog{border:1px solid #e2d6cf;border-radius:19px;padding:0;width:min(700px,cal
  #workspace>.page-header{animation:ew-route-arrive .19s cubic-bezier(.2,.7,.2,1) both}
  #workspace>.service-grid,#workspace>.account-grid{animation:ew-route-arrive .21s cubic-bezier(.2,.7,.2,1) both}
 }
+/* Keep text at full opacity throughout; fading ancestors can temporarily
+   lower WCAG contrast even when their declared colors pass at rest. */
 @keyframes ew-route-arrive{
- from{opacity:.88;transform:translateY(4px)}
- to{opacity:1;transform:translateY(0)}
+ from{transform:translateY(4px)}
+ to{transform:translateY(0)}
 }
 .view-loading{gap:.5rem;min-height:205px}
 .view-loading p{margin:.3rem 0 0;color:#605359;max-width:27ch;font-size:.85rem}
