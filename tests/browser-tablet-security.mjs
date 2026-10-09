@@ -55,7 +55,18 @@ try{
   'Shared tablet must not silently unlock using a still-live HttpOnly cookie');
  await login();
  assert.equal(await page.evaluate(()=>localStorage.getItem('easywine:shared-device-locked')),null);
+ // Two windows of the same shared device must not retain the old restaurant
+ // after one window signs out. The peer does not navigate or poll to discover it.
+ const peer=await context.newPage();
+ await peer.goto(origin,{waitUntil:'domcontentloaded'});
+ await peer.locator('#shell:not([hidden])').waitFor();
  await page.locator('#logout-mobile').tap();
+ await peer.locator('#login:not([hidden])').waitFor();
+ assert.equal(await peer.locator('#workspace').innerText(),'');
+ assert.equal(await peer.evaluate(()=>localStorage.getItem('easywine:shared-device-locked')),'1');
+ await peer.reload({waitUntil:'domcontentloaded'});
+ await peer.locator('#login:not([hidden])').waitFor();
+ await peer.close();
  await page.locator('#login:not([hidden])').waitFor();
  assert.equal(await page.locator('#workspace').innerText(),'');
  assert.equal(await page.evaluate(()=>localStorage.getItem('easywine:shared-device-locked')),'1');
