@@ -32,6 +32,15 @@ Luxe = précision, sobriété et réactivité. Pas d'animation qui ajoute artifi
 - Une transition d'entrée de 4 px / environ 200 ms, seulement sur les grands conteneurs et **sans baisse d'opacité du texte** (contraste WCAG conservé pendant le mouvement), harmonise les changements de vues sans animer les centaines de lignes d'inventaire. `prefers-reduced-motion` désactive ces transitions.
 - À la déconnexion et avant toute nouvelle connexion, l'ancienne interface est réellement vidée du DOM, y compris si une ancienne requête finit tardivement.
 
+## Tablettes de prise de commande — parcours en salle
+
+- **Format tactile de 7 à 10 pouces** : pour les écrans à pointeur imprécis jusqu'à 1100 px CSS de large, la barre de navigation atteint le bas de l'écran à portée du pouce ; la colonne latérale ne réduit plus la surface de conseil. Un appareil doté d'un pointeur précis sans fonction tactile garde la navigation desktop. La version paysage d'au moins 960 px utilise deux colonnes pour maintenir la sélection et les accords visibles côte à côte.
+- **Cibles tactiles de 48 px minimum** pour les commandes courantes et puces de préférences ; sélecteurs de 50 px et typographie de 16 px pour les saisies. La décision est liée au périphérique tactile via `any-pointer:coarse`, et non simplement à l'orientation ou à une hypothèse de modèle matériel.
+- **Wi-Fi instable et changements de critères** : une sélection modifiée annule sa requête de recommandation précédente, libère le bouton et supprime le résultat obsolète sans annoncer de panne réseau. Une nouvelle recherche peut être déclenchée sans attendre le timeout. Aucune répétition automatique de transaction n'est effectuée.
+- **Changement de session** : une réponse ou un corps HTTP reçu après déconnexion est rejeté avant de devenir une confirmation dans la nouvelle session. Le client ne doit jamais afficher une validation associée à un autre établissement.
+- **En exploitation réelle** : il faudra confirmer modèle de tablette, OS/versions, MDM/kiosque, Wi-Fi de salle, extinction et réveil, taille effective en pixels CSS, clavier virtuel, SLA métier et sécurité des appareils partagés. Les simulations Chrome ne valent pas tests physiques.
+- **Hors périmètre validé** : pas de véritable mode hors-ligne avec file d'écritures (risque de stock et de doublons), ni promesse de compatibilité avec un système de commande propriétaire sans API/protocole documenté.
+
 ## Retours d'interaction
 
 | Action | Retour en cours | Confirmation vraie | Erreur |
